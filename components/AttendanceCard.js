@@ -1,9 +1,10 @@
 import { View, Text, StyleSheet } from "react-native";
 import Card from "./Card";
 import Button from "./Button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AttendanceStatus, statusColors } from "../constants/attendance";
 
+import NTPSync from "@ruanitto/react-native-ntp-sync";
 function buttonPress(attendanceStatus, setStatus) {
   if (attendanceStatus === AttendanceStatus.CHECKING_IN) {
     // checkIn()
@@ -22,6 +23,23 @@ function buttonPress(attendanceStatus, setStatus) {
 
 const AttendanceCard = ({ name, onCheckIn }) => {
   const [status, setStatus] = useState(AttendanceStatus.CHECKING_IN); // checkingIn | checkedIn | checkingOut | checkedOut
+
+  const ntp = new NTPSync({
+    servers: [
+      //   { server: "time.google.com", port: 123 },
+      { server: "id.pool.ntp.org", port: 123 },
+      { server: "sg.pool.ntp.org", port: 123 },
+    ],
+    syncInterval: 300000, // 5 minutes (in milliseconds)
+    syncOnCreation: true, // Auto-sync immediately
+    autoSync: true, // Enable background syncing
+  });
+
+  const synchronizedTime = ntp.getTime();
+  console.log(new Date(synchronizedTime));
+  console.log("Synchronized Time:", new Date(synchronizedTime).getHours());
+
+  // TODO: time-based state changes
 
   let buttonText;
 
