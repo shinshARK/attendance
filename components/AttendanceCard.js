@@ -4,6 +4,7 @@ import Button from "./Button";
 import { useEffect } from "react";
 import { AttendanceStatus, statusColors } from "../constants/attendance";
 import * as BackgroundFetch from "expo-background-fetch";
+import * as TaskManager from "expo-task-manager";
 import { performAttendanceCheck } from "../utils/backgroundAttendance"; // Import function
 import { BACKGROUND_FETCH_TASK } from "../utils/backgroundAttendance";
 import { useDispatch, useSelector } from "react-redux";
@@ -23,6 +24,10 @@ const AttendanceCard = ({ name }) => {
           startOnBoot: true,
         });
         console.log("Background fetch task registered");
+        console.log(await BackgroundFetch.getStatusAsync());
+        console.log(
+          await TaskManager.isTaskRegisteredAsync(BACKGROUND_FETCH_TASK)
+        );
       } catch (error) {
         console.error("Error registering background fetch task:", error);
       }
