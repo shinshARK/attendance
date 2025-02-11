@@ -1,75 +1,34 @@
+import React from "react";
 import { View, Text, Button } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useState, useEffect } from "react";
-import { AttendanceStatus } from "../constants/attendance"; // Ensure this import is correct
+import { useSelector, useDispatch } from "react-redux";
+import { AttendanceStatus } from "../constants/attendance";
+import { setStatus, clearStatus } from "../store/attendanceSlice";
 
 function Dashboard() {
-  const [storedStatus, setStoredStatus] = useState(null);
-
-  // Fetch the stored status on component mount
-  useEffect(() => {
-    fetchStoredStatus();
-  }, []);
-
-  // Function to get and log the stored status
-  const fetchStoredStatus = async () => {
-    try {
-      const value = await AsyncStorage.getItem("attendanceStatus");
-      console.log("Retrieved attendanceStatus:", value);
-      setStoredStatus(value ? parseInt(value) : null);
-    } catch (error) {
-      console.error("Error fetching attendanceStatus:", error);
-    }
-  };
-
-  // Function to update the status
-  const updateStatus = async (newStatus) => {
-    try {
-      await AsyncStorage.setItem("attendanceStatus", newStatus.toString());
-      console.log("Updated attendanceStatus:", newStatus);
-      setStoredStatus(newStatus);
-    } catch (error) {
-      console.error("Error updating attendanceStatus:", error);
-    }
-  };
-
-  // Function to clear the stored status
-  const clearStatus = async () => {
-    try {
-      await AsyncStorage.removeItem("attendanceStatus");
-      console.log("Cleared attendanceStatus");
-      setStoredStatus(null);
-    } catch (error) {
-      console.error("Error clearing attendanceStatus:", error);
-    }
-  };
+  const dispatch = useDispatch();
+  const { status } = useSelector((state) => state.attendance);
 
   return (
     <View style={{ padding: 20 }}>
       <Text>Dashboard</Text>
-      <Text>
-        Current attendanceStatus:{" "}
-        {storedStatus !== null ? storedStatus : "None"}
-      </Text>
+      <Text>Current attendanceStatus: {status !== null ? status : "None"}</Text>
 
-      <Button title="Fetch Status" onPress={fetchStoredStatus} />
       <Button
         title="Set to CHECKING_IN"
-        onPress={() => updateStatus(AttendanceStatus.CHECKING_IN)}
+        onPress={() => dispatch(setStatus(AttendanceStatus.CHECKING_IN))}
       />
       <Button
         title="Set to CHECKED_IN"
-        onPress={() => updateStatus(AttendanceStatus.CHECKED_IN)}
+        onPress={() => dispatch(setStatus(AttendanceStatus.CHECKED_IN))}
       />
       <Button
         title="Set to CHECKING_OUT"
-        onPress={() => updateStatus(AttendanceStatus.CHECKING_OUT)}
+        onPress={() => dispatch(setStatus(AttendanceStatus.CHECKING_OUT))}
       />
       <Button
         title="Set to CHECKED_OUT"
-        onPress={() => updateStatus(AttendanceStatus.CHECKED_OUT)}
+        onPress={() => dispatch(setStatus(AttendanceStatus.CHECKED_OUT))}
       />
-      <Button title="Clear Status" onPress={clearStatus} color="red" />
     </View>
   );
 }

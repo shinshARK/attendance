@@ -3,6 +3,8 @@ import * as BackgroundFetch from "expo-background-fetch";
 import * as TaskManager from "expo-task-manager";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AttendanceStatus } from "../constants/attendance";
+import { store } from "../store";
+import { setStatus } from "../store/attendanceSlice";
 
 const BACKGROUND_FETCH_TASK = "attendance-background-fetch";
 
@@ -27,54 +29,38 @@ export const performAttendanceCheck = async () => {
     console.log(`Fetched NTP Time: ${syncedTime} `);
     console.log(`Current Local Hour: ${hour}`);
 
-    let currentStoredStatus = await AsyncStorage.getItem("attendanceStatus");
-    console.log(`Fetched AsyncStorage: ${currentStoredStatus}`);
-    if (currentStoredStatus) {
-      currentStoredStatus = parseInt(currentStoredStatus);
-    }
+    // let currentStoredStatus = await AsyncStorage.getItem("attendanceStatus");
+    // console.log(`Fetched AsyncStorage: ${currentStoredStatus}`);
+    // if (currentStoredStatus) {
+    //   currentStoredStatus = parseInt(currentStoredStatus);
+    // }
+
+    const currentStatus = store.getState().attendance.status;
 
     let newStatus;
 
-    // if (hour < 8 || !currentStoredStatus) {
-    //   newStatus = AttendanceStatus.CHECKING_IN;
-    // } else {
-    //   if (currentStoredStatus === AttendanceStatus.CHECKING_IN) {
-    //     newStatus = AttendanceStatus.CHECKING_IN;
-    //   } else {
-    //     if (hour >= 12 && hour < 17) {
-    //       newStatus = AttendanceStatus.CHECKED_IN;
-    //     } else if (hour >= 17 && hour < 20) {
-    //       newStatus = AttendanceStatus.CHECKING_OUT;
-    //     } else {
-    //       newStatus = AttendanceStatus.CHECKED_OUT;
-    //     }
-    //   }
-    // }
-
     if (
       hour < 8 ||
-      !currentStoredStatus ||
-      currentStoredStatus === AttendanceStatus.CHECKING_IN
+      !currentStatus ||
+      currentStatus === AttendanceStatus.CHECKING_IN
     ) {
       newStatus = AttendanceStatus.CHECKING_IN;
     } else if (
-      currentStoredStatus === AttendanceStatus.CHECKED_IN &&
+      currentStatus === AttendanceStatus.CHECKED_IN &&
       hour >= 14 &&
       hour < 20
     ) {
       newStatus = AttendanceStatus.CHECKING_OUT;
     } else {
-      newStatus = currentStoredStatus;
+      newStatus = currentStatus;
     }
 
-    if (newStatus !== currentStoredStatus) {
-      await AsyncStorage.setItem("attendanceStatus", newStatus.toString());
-      console.log(
-        `[Manual/Background] Updated attendance status to ${newStatus} at ${now.toISOString()}`
-      );
+    if (newStatus !== currentStatus) {
+      store.dispatch(setStatus(newStatus));
+      console.log(`Updated status to ${newStatus}`);
     } else {
       console.log(
-        `[Manual/Background] No change: attendance status remains ${currentStoredStatus} at ${now.toISOString()}`
+        `[Manual/Background] No change: attendance status remains ${currentStatus} at ${now.toISOString()}`
       );
     }
     return BackgroundFetch.BackgroundFetchResult.NewData;

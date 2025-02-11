@@ -1,47 +1,18 @@
 import { View, Text, StyleSheet } from "react-native";
 import Card from "./Card";
 import Button from "./Button";
-import { useState, useEffect } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useEffect } from "react";
 import { AttendanceStatus, statusColors } from "../constants/attendance";
 import * as BackgroundFetch from "expo-background-fetch";
 import { performAttendanceCheck } from "../utils/backgroundAttendance"; // Import function
 import { BACKGROUND_FETCH_TASK } from "../utils/backgroundAttendance";
-
-function buttonPress(attendanceStatus, setStatus) {
-  if (attendanceStatus === AttendanceStatus.CHECKING_IN) {
-    setStatus(AttendanceStatus.CHECKED_IN);
-    AsyncStorage.setItem(
-      "attendanceStatus",
-      AttendanceStatus.CHECKED_IN.toString()
-    );
-  } else if (attendanceStatus === AttendanceStatus.CHECKING_OUT) {
-    setStatus(AttendanceStatus.CHECKED_OUT);
-    AsyncStorage.setItem(
-      "attendanceStatus",
-      AttendanceStatus.CHECKED_OUT.toString()
-    );
-  }
-}
+import { useDispatch, useSelector } from "react-redux";
+import { setStatus } from "../store/attendanceSlice";
+import IconButton from "./IconButton";
 
 const AttendanceCard = ({ name }) => {
-  const [status, setStatus] = useState(AttendanceStatus.CHECKING_IN);
-
-  const loadStatus = async () => {
-    try {
-      const storedStatus = await AsyncStorage.getItem("attendanceStatus");
-      console.log(`stored status: ${storedStatus}`);
-      if (storedStatus) {
-        setStatus(parseInt(storedStatus, 10));
-      }
-    } catch (err) {
-      console.error("Error reading attendance status:", err);
-    }
-  };
-
-  useEffect(() => {
-    loadStatus();
-  }, []);
+  const dispatch = useDispatch();
+  const { status, lastUpdated } = useSelector((state) => state.attendance);
 
   useEffect(() => {
     async function registerBackgroundFetchAsync() {
@@ -59,12 +30,22 @@ const AttendanceCard = ({ name }) => {
     registerBackgroundFetchAsync();
   }, []);
 
+  const handleButtonPress = () => {
+    let newStatus;
+    if (status === AttendanceStatus.CHECKING_IN) {
+      newStatus = AttendanceStatus.CHECKED_IN;
+    } else if (status === AttendanceStatus.CHECKING_OUT) {
+      newStatus = AttendanceStatus.CHECKED_OUT;
+    } else {
+      return;
+    }
+    dispatch(setStatus(newStatus));
+  };
+
   const handleManualCheck = async () => {
     console.log("Manually triggering attendance recheck...");
     try {
-      await performAttendanceCheck(); // Manually trigger logic
-      await loadStatus(); // Reload status from AsyncStorage
-      console.log(`current status: ${status}`);
+      await performAttendanceCheck();
     } catch (error) {
       console.error("Error triggering manual check:", error);
     }
@@ -88,29 +69,47 @@ const AttendanceCard = ({ name }) => {
       buttonText = "Check";
   }
 
+  let content = "";
+  let date = new Date(lastUpdated);
+
+  if (
+    status === AttendanceStatus.CHECKED_IN ||
+    status === AttendanceStatus.CHECKING_OUT
+  ) {
+    content = `Checked in at: ${date}`;
+  } else if (status === AttendanceStatus.CHECKED_OUT) {
+    content = `Checked out at: ${date}`;
+  }
+
   return (
     <Card
       style={styles.attendanceCard}
       gradientColors={statusColors[status] || ["#fff", "#fff"]}
     >
       <View>
-        <Text style={styles.name}>{name}</Text>
-        <Text style={styles.info}>
-          Current Status: {status} – {new Date().getHours()}
-        </Text>
+        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <Text style={styles.name}>{name}</Text>
+          <IconButton
+            icon={"refresh-circle-outline"}
+            size={30}
+            color={"white"}
+            onPress={handleManualCheck}
+          />
+        </View>
+        <Text style={styles.info}>{content}</Text>
       </View>
       <View style={{ alignSelf: "flex-end", flexDirection: "row", gap: 10 }}>
         <Button
           title={buttonText}
-          onPress={buttonPress.bind(this, status, setStatus)}
+          onPress={handleButtonPress}
           style={{ backgroundColor: statusColors[status][1] }}
           isDisabled={status > 1}
         />
-        <Button
+        {/* <Button
           title="Refresh"
           onPress={handleManualCheck} // Calls performAttendanceCheck()
           style={{ backgroundColor: "#1E90FF" }}
-        />
+        /> */}
       </View>
     </Card>
   );
@@ -130,7 +129,7 @@ const styles = StyleSheet.create({
   },
   info: {
     fontSize: 14,
-    color: "lightgray",
+    color: "white",
   },
 });
 
