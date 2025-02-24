@@ -1,19 +1,24 @@
-import { View, Text, StyleSheet } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, Modal, TextInput } from "react-native";
 import Card from "./Card";
 import Button from "./Button";
-import { useEffect } from "react";
 import { AttendanceStatus, statusColors } from "../constants/attendance";
 import * as BackgroundFetch from "expo-background-fetch";
 import * as TaskManager from "expo-task-manager";
-import { performAttendanceCheck } from "../utils/backgroundAttendance"; // Import function
+import { performAttendanceCheck } from "../utils/backgroundAttendance";
 import { BACKGROUND_FETCH_TASK } from "../utils/backgroundAttendance";
 import { useDispatch, useSelector } from "react-redux";
 import { setStatus } from "../store/attendanceSlice";
 import IconButton from "./IconButton";
+import CheckBox from "expo-checkbox";
 
 const AttendanceCard = ({ name }) => {
   const dispatch = useDispatch();
   const { status, lastUpdated } = useSelector((state) => state.attendance);
+
+  const [isCheckedDinas, setIsCheckedDinas] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [keteranganDinas, setKeteranganDinas] = useState("");
 
   useEffect(() => {
     async function registerBackgroundFetchAsync() {
@@ -56,6 +61,34 @@ const AttendanceCard = ({ name }) => {
     }
   };
 
+  const handleCheckboxDinasPress = () => {
+    console.log(`att stat: ${status} checkbox state: ${isCheckedDinas}`);
+    if (status === AttendanceStatus.CHECKING_IN) {
+      if (!isCheckedDinas) {
+        setIsModalVisible(true); // Open modal only when checking IN and checkbox is unchecked
+      } else {
+        setIsCheckedDinas(false); // Directly uncheck if already checked, no modal
+        setKeteranganDinas(""); // Clear keterangan when unchecking
+      }
+    }
+    // Do nothing if status is not CHECKING_IN (checkbox effectively disabled)
+  };
+
+  const handleSimpanKeterangan = () => {
+    if (keteranganDinas.trim() !== "") {
+      setIsCheckedDinas(true);
+    } else {
+      setIsCheckedDinas(false);
+    }
+    setIsModalVisible(false);
+  };
+
+  const handleBatalKeterangan = () => {
+    setIsCheckedDinas(false);
+    setIsModalVisible(false);
+    setKeteranganDinas("");
+  };
+
   let buttonText;
   switch (status) {
     case AttendanceStatus.CHECKING_IN:
@@ -86,6 +119,8 @@ const AttendanceCard = ({ name }) => {
     content = `Checked out at: ${date}`;
   }
 
+  const isCheckboxEnabled = status === AttendanceStatus.CHECKING_IN; // Control checkbox enabled state
+
   return (
     <Card
       style={styles.attendanceCard}
@@ -103,19 +138,73 @@ const AttendanceCard = ({ name }) => {
         </View>
         <Text style={styles.info}>{content}</Text>
       </View>
-      <View style={{ alignSelf: "flex-end", flexDirection: "row", gap: 10 }}>
+      <View
+        style={{
+          // alignSelf: "flex-end",
+          flexDirection: "row",
+          gap: 10,
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            marginRight: 10,
+          }}
+        >
+          <CheckBox
+            value={isCheckedDinas}
+            onValueChange={handleCheckboxDinasPress}
+            color={"white"}
+            disabled={!isCheckboxEnabled} // Disable checkbox based on status
+          />
+          <Text
+            style={{
+              color: "white",
+              marginLeft: 5,
+              opacity: isCheckboxEnabled ? 1 : 0.5,
+            }}
+          >
+            Sedang Dinas
+          </Text>
+        </View>
         <Button
           title={buttonText}
           onPress={handleButtonPress}
           style={{ backgroundColor: statusColors[status][1] }}
           isDisabled={status > 1}
         />
-        {/* <Button
-          title="Refresh"
-          onPress={handleManualCheck} // Calls performAttendanceCheck()
-          style={{ backgroundColor: "#1E90FF" }}
-        /> */}
       </View>
+
+      <Modal visible={isModalVisible} animationType="slide">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Keterangan Dinas:</Text>
+            <TextInput
+              style={styles.modalTextInput}
+              placeholder="Masukkan keterangan dinas"
+              value={keteranganDinas}
+              onChangeText={setKeteranganDinas}
+              multiline
+              numberOfLines={4}
+            />
+            <View style={styles.modalButtons}>
+              <Button
+                title="Simpan"
+                onPress={handleSimpanKeterangan}
+                style={styles.modalButton}
+              />
+              <Button
+                title="Batal"
+                onPress={handleBatalKeterangan}
+                style={styles.modalButton}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Card>
   );
 };
@@ -135,6 +224,38 @@ const styles = StyleSheet.create({
   info: {
     fontSize: 14,
     color: "white",
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalContent: {
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 10,
+    width: "80%",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 15,
+  },
+  modalTextInput: {
+    borderColor: "gray",
+    borderWidth: 1,
+    marginBottom: 15,
+    padding: 10,
+    borderRadius: 5,
+    textAlignVertical: "top",
+  },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+  },
+  modalButton: {
+    minWidth: "40%",
   },
 });
 
