@@ -1,16 +1,22 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, Modal, TextInput } from "react-native";
-import Card from "./Card";
-import Button from "./Button";
+import Card from "./ui/Card";
+import Button from "./ui/Button";
 import { AttendanceStatus, statusColors } from "../constants/attendance";
 import * as BackgroundFetch from "expo-background-fetch";
 import * as TaskManager from "expo-task-manager";
-import { performAttendanceCheck } from "../utils/backgroundAttendance";
+import {
+  performAttendanceCheck,
+  syncNTPTime,
+} from "../utils/backgroundAttendance";
 import { BACKGROUND_FETCH_TASK } from "../utils/backgroundAttendance";
 import { useDispatch, useSelector } from "react-redux";
 import { setStatus } from "../store/attendanceSlice";
-import IconButton from "./IconButton";
+import IconButton from "./ui/IconButton";
 import CheckBox from "expo-checkbox";
+import { logAttendanceData } from "../utils/firebaseAttendance";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { store } from "../store";
 
 const AttendanceCard = ({ name }) => {
   const dispatch = useDispatch();
@@ -38,9 +44,10 @@ const AttendanceCard = ({ name }) => {
       }
     }
     registerBackgroundFetchAsync();
-  }, []);
+    syncNTPTime();
+  }, [syncNTPTime]);
 
-  const handleButtonPress = () => {
+  const handleButtonPress = async () => {
     let newStatus;
     if (status === AttendanceStatus.CHECKING_IN) {
       newStatus = AttendanceStatus.CHECKED_IN;
@@ -49,7 +56,51 @@ const AttendanceCard = ({ name }) => {
     } else {
       return;
     }
-    dispatch(setStatus(newStatus));
+
+    if (
+      newStatus === AttendanceStatus.CHECKED_IN ||
+      newStatus === AttendanceStatus.CHECKED_OUT
+    ) {
+      try {
+        const userEmail = await AsyncStorage.getItem("email");
+        const syncedTime = store.getState().time.ntpTime; // Get NTP time from Redux
+        const today = new Date(syncedTime).toISOString().split("T")[0]; // NTP date
+
+        // TODO: somehow fix and make checkIn not delete when checking out
+        const attendanceData = {
+          status: newStatus,
+          isDinas: isCheckedDinas, // Use current checkbox state
+          dinasDescription: isCheckedDinas ? keteranganDinas : null, // Use current keterangan
+          checkIn:
+            status === AttendanceStatus.CHECKING_IN
+              ? { time: new Date(syncedTime).toISOString() }
+              : store.getState().attendance.checkInTime
+              ? { time: store.getState().attendance.checkInTime }
+              : null, // Capture check-in time if checking in
+          checkOut:
+            status === AttendanceStatus.CHECKING_OUT
+              ? { time: new Date(syncedTime).toISOString() }
+              : store.getState().attendance.checkOutTime
+              ? { time: store.getState().attendance.checkOutTime }
+              : null, // Capture check-out time if checking out
+          lastUpdated: new Date(syncedTime).toISOString(), // Log NTP time as lastUpdated
+        };
+
+        console.log(`${userEmail}, ${status}, `);
+        console.log(`check in ${attendanceData.checkIn}`);
+        console.log(`check out ${attendanceData.checkOut}`);
+
+        if (userEmail) {
+          await logAttendanceData(today, attendanceData);
+          dispatch(setStatus(attendanceData));
+          console.log("Attendance data logged (manual button press).");
+        } else {
+          console.warn("User email not found, cannot log attendance.");
+        }
+      } catch (error) {
+        console.error("Error logging attendance data on button press:", error);
+      }
+    }
   };
 
   const handleManualCheck = async () => {
@@ -120,6 +171,7 @@ const AttendanceCard = ({ name }) => {
   }
 
   const isCheckboxEnabled = status === AttendanceStatus.CHECKING_IN; // Control checkbox enabled state
+  const showCheckbox = status !== AttendanceStatus.CHECKED_OUT; // Determine whether to show checkbox
 
   return (
     <Card
@@ -140,42 +192,49 @@ const AttendanceCard = ({ name }) => {
       </View>
       <View
         style={{
-          // alignSelf: "flex-end",
           flexDirection: "row",
           gap: 10,
           alignItems: "center",
-          justifyContent: "space-between",
+          justifyContent: "space-between", // Use space-between here
+          flex: 1,
+          flexGrow: 1,
+          flexBasis: "100%",
         }}
       >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            marginRight: 10,
-          }}
-        >
-          <CheckBox
-            value={isCheckedDinas}
-            onValueChange={handleCheckboxDinasPress}
-            color={"white"}
-            disabled={!isCheckboxEnabled} // Disable checkbox based on status
-          />
-          <Text
+        {showCheckbox && ( // Conditionally render checkbox and text
+          <View
             style={{
-              color: "white",
-              marginLeft: 5,
-              opacity: isCheckboxEnabled ? 1 : 0.5,
+              flexDirection: "row",
+              alignItems: "center",
+              marginRight: 10,
             }}
           >
-            Sedang Dinas
-          </Text>
+            <CheckBox
+              value={isCheckedDinas}
+              onValueChange={handleCheckboxDinasPress}
+              color={"white"}
+              disabled={!isCheckboxEnabled} // Disable checkbox based on status
+            />
+            <Text
+              style={{
+                color: "white",
+                marginLeft: 5,
+                opacity: isCheckboxEnabled ? 1 : 0.5,
+              }}
+            >
+              Sedang Dinas
+            </Text>
+          </View>
+        )}
+        <View style={{ flex: 0, alignSelf: "flex-end" }}>
+          {/* Container for button to push it to the right */}
+          <Button
+            title={buttonText}
+            onPress={handleButtonPress}
+            style={{ backgroundColor: statusColors[status][1] }}
+            isDisabled={status > 1}
+          />
         </View>
-        <Button
-          title={buttonText}
-          onPress={handleButtonPress}
-          style={{ backgroundColor: statusColors[status][1] }}
-          isDisabled={status > 1}
-        />
       </View>
 
       <Modal visible={isModalVisible} animationType="slide">

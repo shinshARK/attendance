@@ -1,5 +1,5 @@
 import { View, Text, ScrollView } from "react-native";
-import Card from "../components/Card";
+import Card from "../components/ui/Card";
 import AttendanceCard from "../components/AttendanceCard";
 
 function Presensi() {

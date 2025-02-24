@@ -4,6 +4,10 @@ import { AttendanceStatus } from "../constants/attendance";
 const initialState = {
   status: AttendanceStatus.CHECKING_IN,
   lastUpdated: null,
+  isDinas: false,
+  dinasDescription: "",
+  checkInTime: null,
+  checkOutTime: null,
 };
 
 const attendanceSlice = createSlice({
@@ -11,8 +15,23 @@ const attendanceSlice = createSlice({
   initialState,
   reducers: {
     setStatus: (state, action) => {
-      state.status = action.payload;
-      state.lastUpdated = new Date().toISOString();
+      state.status = action.payload.status;
+      // Use lastUpdated from payload, which will be NTP time
+      if (action.payload.lastUpdated !== undefined) {
+        state.lastUpdated = action.payload.lastUpdated;
+      }
+      if (action.payload.isDinas !== undefined) {
+        state.isDinas = action.payload.isDinas;
+      }
+      if (action.payload.dinasDescription !== undefined) {
+        state.dinasDescription = action.payload.dinasDescription;
+      }
+      if (action.payload.checkInTime !== undefined) {
+        state.checkInTime = action.payload.checkInTime;
+      }
+      if (action.payload.checkOutTime !== undefined) {
+        state.checkOutTime = action.payload.checkOutTime;
+      }
     },
   },
 });

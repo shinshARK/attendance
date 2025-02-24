@@ -5,37 +5,64 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AttendanceStatus } from "../constants/attendance";
 import { store } from "../store";
 import { setStatus } from "../store/attendanceSlice";
+import { logAttendanceData } from "./firebaseAttendance";
+import { setNtpTime } from "../store/timeSlice"; // Import setNtpTime action
 
 const BACKGROUND_FETCH_TASK = "attendance-background-fetch";
 
+// Initialize NTPSync outside of the task function for periodic syncing
+const ntpSyncInstance = new NTPSync({
+  servers: [
+    { server: "id.pool.ntp.org", port: 123 },
+    { server: "sg.pool.ntp.org", port: 123 },
+  ],
+  syncInterval: 300000, // 5 minutes in milliseconds
+  syncOnCreation: true,
+  autoSync: true,
+});
+
+// Function to perform NTP time sync and update Redux state
+export const syncNTPTime = async () => {
+  try {
+    await ntpSyncInstance.syncTime();
+    const syncedTime = ntpSyncInstance.getTime();
+    console.log(`time: ${syncedTime}`);
+    store.dispatch(setNtpTime({ ntpTime: syncedTime })); // Dispatch action to update timeSlice
+    console.log(
+      `[Background NTP Sync] NTP Time synced and updated in Redux: ${syncedTime}`
+    );
+  } catch (error) {
+    console.error("[Background NTP Sync] Error syncing NTP time:", error);
+  }
+};
+
 // Function to perform attendance check (can be called manually)
 export const performAttendanceCheck = async () => {
-  try {
-    const ntp = new NTPSync({
-      servers: [
-        { server: "id.pool.ntp.org", port: 123 },
-        { server: "sg.pool.ntp.org", port: 123 },
-      ],
-      syncInterval: 300000, // 5 minutes in milliseconds
-      syncOnCreation: true,
-      autoSync: true,
-    });
+  let syncedTime = store.getState().time.ntpTime; // Get NTP time from Redux state
 
-    await ntp.syncTime();
-    const syncedTime = ntp.getTime();
-    const now = new Date(syncedTime);
+  if (!syncedTime) {
+    console.warn(
+      "[Manual/Background] NTP Time not yet available from Redux state. Using device time temporarily."
+    );
+    syncedTime = new Date().getTime(); // Fallback to device time if NTP not available immediately
+  }
+
+  try {
+    const now = new Date(syncedTime); // Use syncedTime from Redux state
     const hour = now.getHours();
 
-    console.log(`Fetched NTP Time: ${syncedTime} `);
-    console.log(`Current Local Hour: ${hour}`);
-
-    // let currentStoredStatus = await AsyncStorage.getItem("attendanceStatus");
-    // console.log(`Fetched AsyncStorage: ${currentStoredStatus}`);
-    // if (currentStoredStatus) {
-    //   currentStoredStatus = parseInt(currentStoredStatus);
-    // }
+    console.log(
+      `[Manual/Background] Using NTP Time from Redux State: ${syncedTime} `
+    );
+    console.log(`[Manual/Background] Current NTP Hour (from Redux): ${hour}`);
 
     const currentStatus = store.getState().attendance.status;
+    const currentIsDinas = store.getState().attendance.isDinas;
+    const currentDinasDescription =
+      store.getState().attendance.dinasDescription;
+    const currentCheckInTime = store.getState().attendance.checkInTime;
+    const currentCheckOutTime = store.getState().attendance.checkOutTime;
+    const userId = store.getState().auth.token;
 
     let newStatus;
 
@@ -56,8 +83,55 @@ export const performAttendanceCheck = async () => {
     }
 
     if (newStatus !== currentStatus) {
-      store.dispatch(setStatus(newStatus));
-      console.log(`Updated status to ${newStatus}`);
+      const payload = { status: newStatus };
+      let updatedPayload = { ...payload }; // Start with status payload
+
+      if (newStatus === AttendanceStatus.CHECKED_IN && !currentCheckInTime) {
+        updatedPayload.checkInTime = new Date(syncedTime).toISOString(); // Set NTP check-in time from Redux state
+      } else if (
+        newStatus === AttendanceStatus.CHECKED_OUT &&
+        !currentCheckOutTime
+      ) {
+        updatedPayload.checkOutTime = new Date(syncedTime).toISOString(); // Set NTP check-out time from Redux state
+      }
+      // Include lastUpdated with NTP time in payload for slice update
+      updatedPayload.lastUpdated = new Date(syncedTime).toISOString(); // Set NTP lastUpdated from Redux state
+
+      store.dispatch(setStatus(updatedPayload)); // Dispatch status and time updates
+
+      console.log(
+        `[Manual/Background] Updated status to ${newStatus} with NTP time from Redux State and lastUpdated`
+      );
+
+      // const today = new Date(syncedTime).toISOString().split("T")[0]; // NTP date for date key (from Redux state)
+      // let checkInDetails = updatedPayload.checkInTime
+      //   ? { time: updatedPayload.checkInTime }
+      //   : currentCheckInTime
+      //   ? { time: currentCheckInTime }
+      //   : null; // Use NTP time if newly set, else existing or null
+      // let checkOutDetails = updatedPayload.checkOutTime
+      //   ? { time: updatedPayload.checkOutTime }
+      //   : currentCheckOutTime
+      //   ? { time: currentCheckOutTime }
+      //   : null; // Use NTP time if newly set, else existing or null
+
+      // const attendanceData = {
+      //   status: newStatus,
+      //   isDinas: currentIsDinas,
+      //   dinasDescription: currentDinasDescription,
+      //   checkIn: checkInDetails,
+      //   checkOut: checkOutDetails,
+      //   lastUpdated: new Date(syncedTime).toISOString(), // Log NTP time as lastUpdated as well for consistency
+      // };
+
+      // console.log(`new status: ${newStatus}`);
+      // if (userId && newStatus > 1) {
+      //   await logAttendanceData(today, attendanceData);
+      // } else {
+      //   console.warn(
+      //     "User ID not found, cannot log attendance to Firebase (background task)."
+      //   );
+      // }
     } else {
       console.log(
         `[Manual/Background] No change: attendance status remains ${currentStatus} at ${now.toISOString()}`
@@ -72,7 +146,8 @@ export const performAttendanceCheck = async () => {
 
 // Register background task
 TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
-  return await performAttendanceCheck(); // Reuse the function
+  await syncNTPTime(); // Sync NTP time at the beginning of the background task
+  return await performAttendanceCheck();
 });
 
-export { BACKGROUND_FETCH_TASK };
+export { BACKGROUND_FETCH_TASK }; // Export syncNTPTime for manual sync if needed
