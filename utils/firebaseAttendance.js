@@ -1,25 +1,17 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios"; // Import axios
-// Firebase configuration - keep this as you'll need databaseURL
-const firebaseConfig = {
-  apiKey: "AIzaSyAsVLLYHVtkuFoZt61o7UjevjdnGC9Ai1o",
-  //   authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  databaseURL:
-    "https://auth-70e7d-default-rtdb.asia-southeast1.firebasedatabase.app",
-  //   projectId: "YOUR_PROJECT_ID",
-  //   storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  //   messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  //   appId: "YOUR_APP_ID",
-};
+import { firebaseConfig } from "../constants/firebase";
 
 const databaseURL = firebaseConfig.databaseURL; // Extract databaseURL for REST API calls
 
 // export const logAttendanceData = async (userId, date, attendanceData) => {
 export const logAttendanceData = async (date, attendanceData) => {
-  console.log("logging attendance data:");
-  console.log(JSON.stringify(attendanceData));
+  // console.log("logging attendance data:");
+  // console.log(JSON.stringify(attendanceData));
   try {
     let userEmail = await AsyncStorage.getItem("email");
+
+    // format agar tidak ada karakter yang tidak diterima firebase
     userEmail = userEmail.replace("@", "(at)");
     userEmail = userEmail.replace(".", "(dot)");
 
