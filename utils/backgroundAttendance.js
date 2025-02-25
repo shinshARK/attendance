@@ -1,11 +1,9 @@
 import NTPSync from "@ruanitto/react-native-ntp-sync";
 import * as BackgroundFetch from "expo-background-fetch";
 import * as TaskManager from "expo-task-manager";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AttendanceStatus } from "../constants/attendance";
 import { store } from "../store";
 import { setStatus } from "../store/attendanceSlice";
-import { logAttendanceData } from "./firebaseAttendance";
 import { setNtpTime } from "../store/timeSlice"; // Import setNtpTime action
 
 const BACKGROUND_FETCH_TASK = "attendance-background-fetch";

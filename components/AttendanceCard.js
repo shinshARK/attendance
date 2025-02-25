@@ -67,7 +67,6 @@ const AttendanceCard = ({ name }) => {
         const syncedTime = store.getState().time.ntpTime; // Get NTP time from Redux
         const today = new Date(syncedTime).toISOString().split("T")[0]; // NTP date
 
-        // TODO: somehow fix and make checkIn not delete when checking out
         let checkIn;
         if (AttendanceStatus.CHECKING_IN) {
         } else {

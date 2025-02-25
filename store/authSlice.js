@@ -1,15 +1,24 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authenticate as authUtil } from "../utils/auth";
+// import { useDispatch } from "react-redux";
+import { setStatus } from "./attendanceSlice";
 
 // Async Thunks for Authentication Actions
 export const signup = createAsyncThunk(
   "auth/signup",
   async ({ email, password }, { rejectWithValue }) => {
     try {
-      const token = await authUtil("signUp", email, password);
+      const { token, attendanceData } = await authUtil(
+        "signUp",
+        email,
+        password
+      );
+      // const dispatch = useDispatch();
+
       await AsyncStorage.setItem("token", token);
       await AsyncStorage.setItem("email", email);
+      dispatch(setStatus(attendanceData));
       return token;
     } catch (error) {
       return rejectWithValue(
@@ -23,9 +32,18 @@ export const login = createAsyncThunk(
   "auth/login",
   async ({ email, password }, { rejectWithValue }) => {
     try {
-      const token = await authUtil("signInWithPassword", email, password);
+      const { token, attendanceData } = await authUtil(
+        "signInWithPassword",
+        email,
+        password
+      );
+      // const dispatch = useDispatch();
+
+      console.log(attendanceData);
+
       await AsyncStorage.setItem("token", token);
       await AsyncStorage.setItem("email", email);
+      // dispatch(setStatus(attendanceData));
 
       return token;
     } catch (error) {
@@ -42,6 +60,8 @@ export const logout = createAsyncThunk(
     try {
       await AsyncStorage.removeItem("token");
       await AsyncStorage.removeItem("email");
+
+      console.log("asyncstorage remove finished.");
       return null; // Token is removed, return null to reset state
     } catch (error) {
       return rejectWithValue(error.message || "Logout failed");
@@ -121,6 +141,7 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.token = null;
       state.error = null;
+      // rootReducer(undefined, { type: RESET_STATE });
     });
     builder.addCase(logout.rejected, (state, action) => {
       state.isAuthenticating = false;

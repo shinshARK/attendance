@@ -10,7 +10,7 @@ import Debug from "./screens/Debug";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Provider, useDispatch, useSelector } from "react-redux";
-import { store } from "./store";
+import { resetAllStates, store } from "./store";
 import LoginScreen from "./screens/LoginScreen";
 import SignupScreen from "./screens/SignupScreen";
 // Remove WelcomeScreen import
@@ -43,8 +43,9 @@ function AuthStack() {
 function AttendanceBottomTabs() {
   const dispatch = useDispatch();
   const logoutHandler = useCallback(() => {
-    dispatch(logoutAction());
-  }, [dispatch]);
+    dispatch(logoutAction()); // Then dispatch logoutAction
+    dispatch(resetAllStates()); // Dispatch resetAllStates FIRST
+  }, [dispatch]); // Added `navigation` to dependency array
 
   return (
     <BottomTabs.Navigator>
