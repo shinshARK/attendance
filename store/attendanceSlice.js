@@ -17,6 +17,7 @@ const attendanceSlice = createSlice({
     setStatus: (state, action) => {
       state.status = action.payload.status;
       // Use lastUpdated from payload, which will be NTP time
+
       if (action.payload.lastUpdated !== undefined) {
         state.lastUpdated = action.payload.lastUpdated;
       }

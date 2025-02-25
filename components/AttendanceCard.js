@@ -30,15 +30,15 @@ const AttendanceCard = ({ name }) => {
     async function registerBackgroundFetchAsync() {
       try {
         await BackgroundFetch.registerTaskAsync(BACKGROUND_FETCH_TASK, {
-          minimumInterval: 1 * 60, // 1 minute in seconds
+          minimumInterval: 5 * 60, // 1 minute in seconds
           stopOnTerminate: false,
           startOnBoot: true,
         });
-        console.log("Background fetch task registered");
-        console.log(await BackgroundFetch.getStatusAsync());
-        console.log(
-          await TaskManager.isTaskRegisteredAsync(BACKGROUND_FETCH_TASK)
-        );
+        // console.log("Background fetch task registered");
+        // console.log(await BackgroundFetch.getStatusAsync());
+        // console.log(
+        //   await TaskManager.isTaskRegisteredAsync(BACKGROUND_FETCH_TASK)
+        // );
       } catch (error) {
         console.error("Error registering background fetch task:", error);
       }
@@ -63,32 +63,34 @@ const AttendanceCard = ({ name }) => {
     ) {
       try {
         const userEmail = await AsyncStorage.getItem("email");
+        syncNTPTime();
         const syncedTime = store.getState().time.ntpTime; // Get NTP time from Redux
         const today = new Date(syncedTime).toISOString().split("T")[0]; // NTP date
 
         // TODO: somehow fix and make checkIn not delete when checking out
+        let checkIn;
+        if (AttendanceStatus.CHECKING_IN) {
+        } else {
+          checkIn = store.getState().attendance.checkInTime;
+        }
+
         const attendanceData = {
           status: newStatus,
-          isDinas: isCheckedDinas, // Use current checkbox state
-          dinasDescription: isCheckedDinas ? keteranganDinas : null, // Use current keterangan
-          checkIn:
+          isDinas: isCheckedDinas,
+          dinasDescription: isCheckedDinas ? keteranganDinas : null,
+          checkInTime:
             status === AttendanceStatus.CHECKING_IN
-              ? { time: new Date(syncedTime).toISOString() }
-              : store.getState().attendance.checkInTime
-              ? { time: store.getState().attendance.checkInTime }
-              : null, // Capture check-in time if checking in
-          checkOut:
+              ? new Date(syncedTime).toISOString() // Store timestamp directly for checkIn
+              : store.getState().attendance.checkInTime, // Get existing checkInTime from Redux
+          checkOutTime:
             status === AttendanceStatus.CHECKING_OUT
-              ? { time: new Date(syncedTime).toISOString() }
-              : store.getState().attendance.checkOutTime
-              ? { time: store.getState().attendance.checkOutTime }
-              : null, // Capture check-out time if checking out
-          lastUpdated: new Date(syncedTime).toISOString(), // Log NTP time as lastUpdated
+              ? new Date(syncedTime).toISOString() // Store timestamp directly for checkOut
+              : null,
+          lastUpdated: new Date(syncedTime).toISOString(),
         };
 
-        console.log(`${userEmail}, ${status}, `);
-        console.log(`check in ${attendanceData.checkIn}`);
-        console.log(`check out ${attendanceData.checkOut}`);
+        // console.log(`${userEmail}, ${status}, `);
+        // console.log(`attendance data: ${JSON.stringify(attendanceData)}`);
 
         if (userEmail) {
           await logAttendanceData(today, attendanceData);
@@ -113,7 +115,6 @@ const AttendanceCard = ({ name }) => {
   };
 
   const handleCheckboxDinasPress = () => {
-    console.log(`att stat: ${status} checkbox state: ${isCheckedDinas}`);
     if (status === AttendanceStatus.CHECKING_IN) {
       if (!isCheckedDinas) {
         setIsModalVisible(true); // Open modal only when checking IN and checkbox is unchecked

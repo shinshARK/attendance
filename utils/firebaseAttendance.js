@@ -16,7 +16,8 @@ const databaseURL = firebaseConfig.databaseURL; // Extract databaseURL for REST 
 
 // export const logAttendanceData = async (userId, date, attendanceData) => {
 export const logAttendanceData = async (date, attendanceData) => {
-  console.log("logging attendance data");
+  console.log("logging attendance data:");
+  console.log(JSON.stringify(attendanceData));
   try {
     let userEmail = await AsyncStorage.getItem("email");
     userEmail = userEmail.replace("@", "(at)");
@@ -25,7 +26,8 @@ export const logAttendanceData = async (date, attendanceData) => {
     const token = await AsyncStorage.getItem("token");
 
     const endpointURL = `${databaseURL}/attendanceData/${userEmail}/${date}.json?auth=${token}`; // REST API endpoint
-    console.log(endpointURL);
+    // console.log(endpointURL);
+
     const response = await axios.put(endpointURL, attendanceData, {
       // Use axios.put
       headers: {

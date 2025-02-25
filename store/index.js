@@ -9,4 +9,5 @@ export const store = configureStore({
     auth: authReducer,
     time: timeReducer,
   },
+  devTools: true,
 });

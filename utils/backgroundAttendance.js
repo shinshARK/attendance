@@ -29,10 +29,10 @@ export const syncNTPTime = async () => {
     console.log(`time: ${syncedTime}`);
     store.dispatch(setNtpTime({ ntpTime: syncedTime })); // Dispatch action to update timeSlice
     console.log(
-      `[Background NTP Sync] NTP Time synced and updated in Redux: ${syncedTime}`
+      `[NTP Sync] NTP Time synced and updated in Redux: ${syncedTime}`
     );
   } catch (error) {
-    console.error("[Background NTP Sync] Error syncing NTP time:", error);
+    console.error("[NTP Sync] Error syncing NTP time:", error);
   }
 };
 
@@ -42,7 +42,7 @@ export const performAttendanceCheck = async () => {
 
   if (!syncedTime) {
     console.warn(
-      "[Manual/Background] NTP Time not yet available from Redux state. Using device time temporarily."
+      "[] NTP Time not yet available from Redux state. Using device time temporarily."
     );
     syncedTime = new Date().getTime(); // Fallback to device time if NTP not available immediately
   }
@@ -51,10 +51,8 @@ export const performAttendanceCheck = async () => {
     const now = new Date(syncedTime); // Use syncedTime from Redux state
     const hour = now.getHours();
 
-    console.log(
-      `[Manual/Background] Using NTP Time from Redux State: ${syncedTime} `
-    );
-    console.log(`[Manual/Background] Current NTP Hour (from Redux): ${hour}`);
+    console.log(`[] Using NTP Time from Redux State: ${syncedTime} `);
+    console.log(`[] Current NTP Hour (from Redux): ${hour}`);
 
     const currentStatus = store.getState().attendance.status;
     const currentIsDinas = store.getState().attendance.isDinas;
@@ -100,7 +98,7 @@ export const performAttendanceCheck = async () => {
       store.dispatch(setStatus(updatedPayload)); // Dispatch status and time updates
 
       console.log(
-        `[Manual/Background] Updated status to ${newStatus} with NTP time from Redux State and lastUpdated`
+        `[] Updated status to ${newStatus} with NTP time from Redux State and lastUpdated`
       );
 
       // const today = new Date(syncedTime).toISOString().split("T")[0]; // NTP date for date key (from Redux state)
@@ -134,12 +132,12 @@ export const performAttendanceCheck = async () => {
       // }
     } else {
       console.log(
-        `[Manual/Background] No change: attendance status remains ${currentStatus} at ${now.toISOString()}`
+        `[] No change: attendance status remains ${currentStatus} at ${now.toISOString()}`
       );
     }
     return BackgroundFetch.BackgroundFetchResult.NewData;
   } catch (err) {
-    console.error("[Manual/Background] Error updating attendance status:", err);
+    console.error("[] Error updating attendance status:", err);
     return BackgroundFetch.BackgroundFetchResult.Failed;
   }
 };

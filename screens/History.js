@@ -4,12 +4,12 @@ import { useSelector, useDispatch } from "react-redux";
 import { AttendanceStatus } from "../constants/attendance";
 import { setStatus, clearStatus } from "../store/attendanceSlice";
 
-function Dashboard() {
+function History() {
   return (
     <View style={{ padding: 20 }}>
-      <Text>Dashboard</Text>
+      <Text>History</Text>
     </View>
   );
 }
 
-export default Dashboard;
+export default History;

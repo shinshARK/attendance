@@ -4,7 +4,9 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, Text, View } from "react-native";
 import Presensi from "./screens/Presensi";
+import History from "./screens/History";
 import Dashboard from "./screens/Dashboard";
+import Debug from "./screens/Debug";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Provider, useDispatch, useSelector } from "react-redux";
@@ -66,11 +68,29 @@ function AttendanceBottomTabs() {
         }}
       />
       <BottomTabs.Screen
+        name="History"
+        component={History}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="history" color={color} size={size} />
+          ),
+        }}
+      />
+      <BottomTabs.Screen
         name="Dashboard"
         component={Dashboard}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="space-dashboard" color={color} size={size} />
+            <MaterialIcons name="dashboard" color={color} size={size} />
+          ),
+        }}
+      />
+      <BottomTabs.Screen
+        name="Debug"
+        component={Debug}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="bug-outline" color={color} size={size} />
           ),
         }}
       />
