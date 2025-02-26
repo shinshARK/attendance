@@ -14,7 +14,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { setStatus } from "../store/attendanceSlice";
 import IconButton from "./ui/IconButton";
 import CheckBox from "expo-checkbox";
-import { logAttendanceData } from "../utils/firebaseAttendance";
+import { updateCurrentDayAttendanceStatus } from "../utils/firebase/db/attendanceApi";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { store } from "../store";
 
@@ -43,8 +44,12 @@ const AttendanceCard = ({ name }) => {
         console.error("Error registering background fetch task:", error);
       }
     }
-    registerBackgroundFetchAsync();
-    syncNTPTime();
+    async function effectFunction() {
+      // Create an async function to wrap both calls
+      await registerBackgroundFetchAsync();
+      await syncNTPTime(); // Await syncNTPTime here
+    }
+    effectFunction(); // Call the wrapper async function
   }, [syncNTPTime]);
 
   const handleButtonPress = async () => {
@@ -63,7 +68,7 @@ const AttendanceCard = ({ name }) => {
     ) {
       try {
         const userEmail = await AsyncStorage.getItem("email");
-        syncNTPTime();
+        await syncNTPTime();
         const syncedTime = store.getState().time.ntpTime; // Get NTP time from Redux
         const today = new Date(syncedTime).toISOString().split("T")[0]; // NTP date
 
@@ -92,7 +97,7 @@ const AttendanceCard = ({ name }) => {
         // console.log(`attendance data: ${JSON.stringify(attendanceData)}`);
 
         if (userEmail) {
-          await logAttendanceData(today, attendanceData);
+          await updateCurrentDayAttendanceStatus(today, attendanceData);
           dispatch(setStatus(attendanceData));
           console.log("Attendance data logged (manual button press).");
         } else {
