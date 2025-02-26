@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Modal, TextInput } from "react-native";
+import { View, Text, StyleSheet, Modal, TextInput, Alert } from "react-native";
 import Card from "./ui/Card";
 import Button from "./ui/Button";
 import { AttendanceStatus, statusColors } from "../constants/attendance";
@@ -18,10 +18,18 @@ import { updateCurrentDayAttendanceStatus } from "../utils/firebase/db/attendanc
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { store } from "../store";
+import * as Location from "expo-location";
+import { haversine } from "../utils/location";
+
+const OFFICE_LATITUDE = -6.872868773290025; // Replace with your office latitude
+const OFFICE_LONGITUDE = 107.59036591779108; // Replace with your office longitude
+const OFFICE_RADIUS_METERS = 50; // 50 meters radius
 
 const AttendanceCard = ({ name }) => {
   const dispatch = useDispatch();
-  const { status, lastUpdated } = useSelector((state) => state.attendance);
+  const { status: attendanceStatus, lastUpdated } = useSelector(
+    (state) => state.attendance
+  );
 
   const [isCheckedDinas, setIsCheckedDinas] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -31,32 +39,68 @@ const AttendanceCard = ({ name }) => {
     async function registerBackgroundFetchAsync() {
       try {
         await BackgroundFetch.registerTaskAsync(BACKGROUND_FETCH_TASK, {
-          minimumInterval: 5 * 60, // 1 minute in seconds
+          minimumInterval: 5 * 60, // 5 minutes in seconds
           stopOnTerminate: false,
           startOnBoot: true,
         });
-        // console.log("Background fetch task registered");
-        // console.log(await BackgroundFetch.getStatusAsync());
-        // console.log(
-        //   await TaskManager.isTaskRegisteredAsync(BACKGROUND_FETCH_TASK)
-        // );
       } catch (error) {
         console.error("Error registering background fetch task:", error);
       }
     }
     async function effectFunction() {
-      // Create an async function to wrap both calls
       await registerBackgroundFetchAsync();
-      await syncNTPTime(); // Await syncNTPTime here
+      await syncNTPTime();
     }
-    effectFunction(); // Call the wrapper async function
+    effectFunction();
   }, [syncNTPTime]);
 
+  const isLocationInOfficeRange = async () => {
+    try {
+      let { status: permissionStatus } =
+        await Location.requestForegroundPermissionsAsync(); // Renamed status to permissionStatus
+      if (permissionStatus !== "granted") {
+        // Use permissionStatus here
+        Alert.alert(
+          "Location permission not granted",
+          "Please grant location permission to check attendance."
+        );
+        return false;
+      }
+
+      let location = await Location.getCurrentPositionAsync({});
+      const distance = haversine(
+        location.coords.latitude,
+        location.coords.longitude,
+        OFFICE_LATITUDE,
+        OFFICE_LONGITUDE
+      );
+
+      console.log(`Distance to office: ${distance} meters`);
+      return distance <= OFFICE_RADIUS_METERS;
+    } catch (error) {
+      console.error("Error checking location:", error);
+      Alert.alert(
+        "Location Error",
+        "Could not get location. Please try again."
+      );
+      return false; // Assume not in range if location can't be determined
+    }
+  };
+
   const handleButtonPress = async () => {
+    const isInOfficeRange = await isLocationInOfficeRange();
+    if (!isInOfficeRange) {
+      Alert.alert(
+        "You are not in the office range",
+        `Please check in/out when you are within ${OFFICE_RADIUS_METERS} meters of the office.`
+      );
+      return;
+    }
+
     let newStatus;
-    if (status === AttendanceStatus.CHECKING_IN) {
+    if (attendanceStatus === AttendanceStatus.CHECKING_IN) {
       newStatus = AttendanceStatus.CHECKED_IN;
-    } else if (status === AttendanceStatus.CHECKING_OUT) {
+    } else if (attendanceStatus === AttendanceStatus.CHECKING_OUT) {
       newStatus = AttendanceStatus.CHECKED_OUT;
     } else {
       return;
@@ -69,8 +113,8 @@ const AttendanceCard = ({ name }) => {
       try {
         const userEmail = await AsyncStorage.getItem("email");
         await syncNTPTime();
-        const syncedTime = store.getState().time.ntpTime; // Get NTP time from Redux
-        const today = new Date(syncedTime).toISOString().split("T")[0]; // NTP date
+        const syncedTime = store.getState().time.ntpTime;
+        const today = new Date(syncedTime).toISOString().split("T")[0];
 
         let checkIn;
         if (AttendanceStatus.CHECKING_IN) {
@@ -83,18 +127,15 @@ const AttendanceCard = ({ name }) => {
           isDinas: isCheckedDinas,
           dinasDescription: isCheckedDinas ? keteranganDinas : null,
           checkInTime:
-            status === AttendanceStatus.CHECKING_IN
-              ? new Date(syncedTime).toISOString() // Store timestamp directly for checkIn
-              : store.getState().attendance.checkInTime, // Get existing checkInTime from Redux
+            attendanceStatus === AttendanceStatus.CHECKING_IN
+              ? new Date(syncedTime).toISOString()
+              : store.getState().attendance.checkInTime,
           checkOutTime:
-            status === AttendanceStatus.CHECKING_OUT
-              ? new Date(syncedTime).toISOString() // Store timestamp directly for checkOut
+            attendanceStatus === AttendanceStatus.CHECKING_OUT
+              ? new Date(syncedTime).toISOString()
               : null,
           lastUpdated: new Date(syncedTime).toISOString(),
         };
-
-        // console.log(`${userEmail}, ${status}, `);
-        // console.log(`attendance data: ${JSON.stringify(attendanceData)}`);
 
         if (userEmail) {
           await updateCurrentDayAttendanceStatus(today, attendanceData);
@@ -119,15 +160,14 @@ const AttendanceCard = ({ name }) => {
   };
 
   const handleCheckboxDinasPress = () => {
-    if (status === AttendanceStatus.CHECKING_IN) {
+    if (attendanceStatus === AttendanceStatus.CHECKING_IN) {
       if (!isCheckedDinas) {
-        setIsModalVisible(true); // Open modal only when checking IN and checkbox is unchecked
+        setIsModalVisible(true);
       } else {
-        setIsCheckedDinas(false); // Directly uncheck if already checked, no modal
-        setKeteranganDinas(""); // Clear keterangan when unchecking
+        setIsCheckedDinas(false);
+        setKeteranganDinas("");
       }
-    }
-    // Do nothing if status is not CHECKING_IN (checkbox effectively disabled)
+    } // Do nothing if status is not CHECKING_IN (checkbox effectively disabled)
   };
 
   const handleSimpanKeterangan = () => {
@@ -146,7 +186,7 @@ const AttendanceCard = ({ name }) => {
   };
 
   let buttonText;
-  switch (status) {
+  switch (attendanceStatus) {
     case AttendanceStatus.CHECKING_IN:
       buttonText = "Check In";
       break;
@@ -167,21 +207,21 @@ const AttendanceCard = ({ name }) => {
   let date = new Date(lastUpdated);
 
   if (
-    status === AttendanceStatus.CHECKED_IN ||
-    status === AttendanceStatus.CHECKING_OUT
+    attendanceStatus === AttendanceStatus.CHECKED_IN ||
+    attendanceStatus === AttendanceStatus.CHECKING_OUT
   ) {
     content = `Checked in at: ${date}`;
-  } else if (status === AttendanceStatus.CHECKED_OUT) {
+  } else if (attendanceStatus === AttendanceStatus.CHECKED_OUT) {
     content = `Checked out at: ${date}`;
   }
 
-  const isCheckboxEnabled = status === AttendanceStatus.CHECKING_IN; // Control checkbox enabled state
-  const showCheckbox = status !== AttendanceStatus.CHECKED_OUT; // Determine whether to show checkbox
+  const isCheckboxEnabled = attendanceStatus === AttendanceStatus.CHECKING_IN;
+  const showCheckbox = attendanceStatus !== AttendanceStatus.CHECKED_OUT;
 
   return (
     <Card
       style={styles.attendanceCard}
-      gradientColors={statusColors[status] || ["#fff", "#fff"]}
+      gradientColors={statusColors[attendanceStatus] || ["#fff", "#fff"]}
     >
       <View>
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
@@ -200,13 +240,13 @@ const AttendanceCard = ({ name }) => {
           flexDirection: "row",
           gap: 10,
           alignItems: "center",
-          justifyContent: "space-between", // Use space-between here
+          justifyContent: "space-between",
           flex: 1,
           flexGrow: 1,
           flexBasis: "100%",
         }}
       >
-        {showCheckbox && ( // Conditionally render checkbox and text
+        {showCheckbox && (
           <View
             style={{
               flexDirection: "row",
@@ -218,7 +258,7 @@ const AttendanceCard = ({ name }) => {
               value={isCheckedDinas}
               onValueChange={handleCheckboxDinasPress}
               color={"white"}
-              disabled={!isCheckboxEnabled} // Disable checkbox based on status
+              disabled={!isCheckboxEnabled}
             />
             <Text
               style={{
@@ -232,16 +272,14 @@ const AttendanceCard = ({ name }) => {
           </View>
         )}
         <View style={{ flex: 0, alignSelf: "flex-end" }}>
-          {/* Container for button to push it to the right */}
           <Button
             title={buttonText}
             onPress={handleButtonPress}
-            style={{ backgroundColor: statusColors[status][1] }}
-            isDisabled={status > 1}
+            style={{ backgroundColor: statusColors[attendanceStatus][1] }}
+            isDisabled={attendanceStatus > 1}
           />
         </View>
       </View>
-
       <Modal visible={isModalVisible} animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
