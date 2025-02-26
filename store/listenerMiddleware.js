@@ -2,7 +2,9 @@
 import { createListenerMiddleware } from "@reduxjs/toolkit";
 import { login } from "./authSlice"; // Import the login async thunk from authSlice
 import { setStatus } from "./attendanceSlice"; // Import the setStatus action from attendanceSlice
+import { updateHistoryItem } from "./historySlice"; // Import updateHistoryItem action
 import { fetchCurrentDayAttendance } from "../utils/firebase/db/attendanceApi";
+import { syncNTPTime } from "../utils/backgroundAttendance";
 
 export const listenerMiddleware = createListenerMiddleware();
 
@@ -29,5 +31,24 @@ listenerMiddleware.startListening({
       console.error("Error fetching attendance data in middleware:", error);
       // Handle error appropriately, e.g., dispatch an error action or log it
     }
+  },
+});
+
+listenerMiddleware.startListening({
+  // New listener for setStatus action
+  actionCreator: setStatus, // Listen for the setStatus action
+  effect: async (action, listenerApi) => {
+    console.log(
+      "setStatus action detected by middleware. Updating historySlice..."
+    );
+    const currentAttendanceStatus = action.payload; // The payload of setStatus is the current attendance data
+    await syncNTPTime();
+    const syncedTime = listenerApi.getState().time.ntpTime; // Get NTP time
+    const today = new Date(syncedTime).toISOString().split("T")[0]; // Get today's date
+
+    listenerApi.dispatch(
+      updateHistoryItem({ date: today, updatedData: currentAttendanceStatus }) // Dispatch updateHistoryItem
+    );
+    console.log("historySlice updated with current attendance status.");
   },
 });
