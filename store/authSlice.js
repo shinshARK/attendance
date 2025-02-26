@@ -1,24 +1,17 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { authenticate as authUtil } from "../utils/auth";
-// import { useDispatch } from "react-redux";
-import { setStatus } from "./attendanceSlice";
+import { authenticate } from "../utils/firebase/auth/authApi";
 
-// Async Thunks for Authentication Actions
 export const signup = createAsyncThunk(
   "auth/signup",
   async ({ email, password }, { rejectWithValue }) => {
     try {
-      const { token, attendanceData } = await authUtil(
-        "signUp",
-        email,
-        password
-      );
+      const token = await authenticate("signUp", email, password);
 
       await AsyncStorage.setItem("token", token);
       await AsyncStorage.setItem("email", email);
 
-      return { token, attendanceData };
+      return token;
     } catch (error) {
       return rejectWithValue(
         error.response.data.error.message || "Signup failed"
@@ -31,20 +24,12 @@ export const login = createAsyncThunk(
   "auth/login",
   async ({ email, password }, { rejectWithValue }) => {
     try {
-      const { token, attendanceData } = await authUtil(
-        "signInWithPassword",
-        email,
-        password
-      );
-      // const dispatch = useDispatch();
-
-      console.log(attendanceData);
+      const token = await authenticate("signInWithPassword", email, password);
 
       await AsyncStorage.setItem("token", token);
       await AsyncStorage.setItem("email", email);
-      // dispatch(setStatus(attendanceData));
 
-      return { token, attendanceData };
+      return token;
     } catch (error) {
       return rejectWithValue(
         error.response.data.error.message || "Login failed"
@@ -89,14 +74,12 @@ const authSlice = createSlice({
     error: null,
   },
   reducers: {
-    // Non-async actions can be placed here if needed
     setAuthToken: (state, action) => {
       state.token = action.payload;
       state.isAuthenticated = !!action.payload;
     },
   },
   extraReducers: (builder) => {
-    // Signup reducers
     builder.addCase(signup.pending, (state) => {
       state.isAuthenticating = true;
       state.error = null;
