@@ -14,12 +14,11 @@ export const signup = createAsyncThunk(
         email,
         password
       );
-      // const dispatch = useDispatch();
 
       await AsyncStorage.setItem("token", token);
       await AsyncStorage.setItem("email", email);
-      dispatch(setStatus(attendanceData));
-      return token;
+
+      return { token, attendanceData };
     } catch (error) {
       return rejectWithValue(
         error.response.data.error.message || "Signup failed"
@@ -45,7 +44,7 @@ export const login = createAsyncThunk(
       await AsyncStorage.setItem("email", email);
       // dispatch(setStatus(attendanceData));
 
-      return token;
+      return { token, attendanceData };
     } catch (error) {
       return rejectWithValue(
         error.response.data.error.message || "Login failed"
