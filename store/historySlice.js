@@ -23,7 +23,22 @@ export const fetchAttendanceHistory = createAsyncThunk(
 const historySlice = createSlice({
   name: "history",
   initialState,
-  reducers: {},
+  reducers: {
+    updateHistoryItem: (state, action) => {
+      const { date, updatedData } = action.payload; // Extract date and updatedData from payload
+      const index = state.historyData.findIndex((item) => item.date === date); // Find index by date
+
+      if (index !== -1) {
+        // If item with matching date is found
+        state.historyData[index] = {
+          ...state.historyData[index],
+          ...updatedData,
+        }; // Update item
+      } else {
+        state.historyData.unshift({ date, ...updatedData });
+      }
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchAttendanceHistory.pending, (state) => {
@@ -42,4 +57,5 @@ const historySlice = createSlice({
   },
 });
 
+export const { updateHistoryItem } = historySlice.actions; // Export the new action
 export default historySlice.reducer;
