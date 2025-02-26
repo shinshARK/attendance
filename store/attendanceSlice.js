@@ -8,6 +8,7 @@ const initialState = {
   dinasDescription: "",
   checkInTime: null,
   checkOutTime: null,
+  loading: false,
 };
 
 const attendanceSlice = createSlice({

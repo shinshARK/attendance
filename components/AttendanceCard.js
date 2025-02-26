@@ -21,8 +21,14 @@ import { store } from "../store";
 import * as Location from "expo-location";
 import { haversine } from "../utils/location";
 
+// uhh Ilkom Gedung C
+// const OFFICE_LATITUDE = -6.872868773290025; // Replace with your office latitude
+// const OFFICE_LONGITUDE = 107.59036591779108; // Replace with your office longitude
+
+// ARM
 const OFFICE_LATITUDE = -6.872868773290025; // Replace with your office latitude
 const OFFICE_LONGITUDE = 107.59036591779108; // Replace with your office longitude
+
 const OFFICE_RADIUS_METERS = 50; // 50 meters radius
 
 const AttendanceCard = ({ name }) => {
@@ -34,6 +40,7 @@ const AttendanceCard = ({ name }) => {
   const [isCheckedDinas, setIsCheckedDinas] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [keteranganDinas, setKeteranganDinas] = useState("");
+  const [buttonLoading, setButtonLoading] = useState(false);
 
   useEffect(() => {
     async function registerBackgroundFetchAsync() {
@@ -68,6 +75,9 @@ const AttendanceCard = ({ name }) => {
       }
 
       let location = await Location.getCurrentPositionAsync({});
+      console.log(
+        `current location coords: ${JSON.stringify(location.coords)}`
+      );
       const distance = haversine(
         location.coords.latitude,
         location.coords.longitude,
@@ -88,12 +98,14 @@ const AttendanceCard = ({ name }) => {
   };
 
   const handleButtonPress = async () => {
+    setButtonLoading(true);
     const isInOfficeRange = await isLocationInOfficeRange();
     if (!isInOfficeRange) {
       Alert.alert(
         "You are not in the office range",
         `Please check in/out when you are within ${OFFICE_RADIUS_METERS} meters of the office.`
       );
+      setButtonLoading(false);
       return;
     }
 
@@ -103,6 +115,7 @@ const AttendanceCard = ({ name }) => {
     } else if (attendanceStatus === AttendanceStatus.CHECKING_OUT) {
       newStatus = AttendanceStatus.CHECKED_OUT;
     } else {
+      setButtonLoading(false);
       return;
     }
 
@@ -144,7 +157,9 @@ const AttendanceCard = ({ name }) => {
         } else {
           console.warn("User email not found, cannot log attendance.");
         }
+        setButtonLoading(false);
       } catch (error) {
+        setButtonLoading(false);
         console.error("Error logging attendance data on button press:", error);
       }
     }
@@ -186,21 +201,25 @@ const AttendanceCard = ({ name }) => {
   };
 
   let buttonText;
-  switch (attendanceStatus) {
-    case AttendanceStatus.CHECKING_IN:
-      buttonText = "Check In";
-      break;
-    case AttendanceStatus.CHECKED_IN:
-      buttonText = "Checked In";
-      break;
-    case AttendanceStatus.CHECKING_OUT:
-      buttonText = "Check Out";
-      break;
-    case AttendanceStatus.CHECKED_OUT:
-      buttonText = "Checked Out";
-      break;
-    default:
-      buttonText = "Check";
+  if (buttonLoading) {
+    buttonText = "Loading...";
+  } else {
+    switch (attendanceStatus) {
+      case AttendanceStatus.CHECKING_IN:
+        buttonText = "Check In";
+        break;
+      case AttendanceStatus.CHECKED_IN:
+        buttonText = "Checked In";
+        break;
+      case AttendanceStatus.CHECKING_OUT:
+        buttonText = "Check Out";
+        break;
+      case AttendanceStatus.CHECKED_OUT:
+        buttonText = "Checked Out";
+        break;
+      default:
+        buttonText = "Check";
+    }
   }
 
   let content = "";
