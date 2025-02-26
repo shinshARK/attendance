@@ -1,42 +1,61 @@
-import React from "react";
-import { View, Text, Button } from "react-native";
+// File: /screens/History.js
+import React, { useEffect } from "react";
+import { View, Text, Button, ActivityIndicator, FlatList } from "react-native";
 import { useSelector, useDispatch } from "react-redux";
-import { AttendanceStatus } from "../constants/attendance";
-import { setStatus, clearStatus } from "../store/attendanceSlice";
+import { fetchAttendanceHistory } from "../store/historySlice";
 import HistoryCard from "../components/HistoryCard";
 
 function History() {
-  const historyData = [
-    {
-      date: "2024-02-25T00:00:00.000Z", // Example date in ISO format
-      checkInTime: "2024-02-25T08:00:00.000Z",
-      checkOutTime: "2024-02-25T17:00:00.000Z",
-      status: 3, // Example status (Checked Out)
-      dinasDescription: null,
-    },
-    {
-      date: "2024-02-24T00:00:00.000Z",
-      checkInTime: "2024-02-24T09:00:00.000Z",
-      checkOutTime: "2024-02-24T18:00:00.000Z",
-      status: 3,
-      dinasDescription: "Dinas Luar Kota",
-    },
-    // ... more history data
-  ];
+  const dispatch = useDispatch();
+  const historyState = useSelector((state) => state.history);
+
+  useEffect(() => {
+    dispatch(fetchAttendanceHistory());
+  }, [dispatch]);
+
+  const renderItem = ({ item }) => (
+    <HistoryCard
+      date={item.date}
+      checkInTime={item.checkInTime}
+      checkOutTime={item.checkOutTime}
+      status={item.status}
+      dinasDescription={item.dinasDescription}
+    />
+  );
+
+  const keyExtractor = (item, index) => index.toString(); // Simple key extractor
 
   return (
     <View style={{ padding: 20 }}>
-      {/* <Text>History</Text> */}
-      {historyData.map((item, index) => (
-        <HistoryCard
-          key={index}
-          date={item.date}
-          checkInTime={item.checkInTime}
-          checkOutTime={item.checkOutTime}
-          status={item.status}
-          dinasDescription={item.dinasDescription}
+      <Text style={{ fontSize: 20, marginBottom: 20, textAlign: "center" }}>
+        Attendance History
+      </Text>
+
+      {historyState.loading === "loading" && (
+        <ActivityIndicator
+          size="large"
+          color="#007bff"
+          style={{ marginTop: 20 }}
         />
-      ))}
+      )}
+
+      {historyState.error && (
+        <Text style={{ color: "red", marginTop: 20, textAlign: "center" }}>
+          Error: {historyState.error}
+        </Text>
+      )}
+
+      {historyState.historyData && historyState.historyData.length > 0 ? (
+        <FlatList // Replaced .map with FlatList
+          data={historyState.historyData}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+        />
+      ) : historyState.loading !== "loading" && !historyState.error ? (
+        <Text style={{ marginTop: 20, textAlign: "center" }}>
+          No history data available.
+        </Text>
+      ) : null}
     </View>
   );
 }
