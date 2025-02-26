@@ -3,7 +3,6 @@ import { createListenerMiddleware } from "@reduxjs/toolkit";
 import { login } from "./authSlice"; // Import the login async thunk from authSlice
 import { setStatus } from "./attendanceSlice"; // Import the setStatus action from attendanceSlice
 import { fetchCurrentDayAttendance } from "../utils/firebase/db/attendanceApi";
-import { store } from ".";
 
 export const listenerMiddleware = createListenerMiddleware();
 

@@ -4,12 +4,14 @@ import devToolsEnhancer from "redux-devtools-expo-dev-plugin";
 import attendanceReducer from "./attendanceSlice";
 import authReducer from "./authSlice";
 import timeReducer from "./timeSlice";
+import historyReducer from "./historySlice";
 import { listenerMiddleware } from "./listenerMiddleware"; // Import the listener middleware
 
 const appReducer = combineReducers({
   attendance: attendanceReducer,
   auth: authReducer,
   time: timeReducer,
+  history: historyReducer,
 });
 
 export const rootReducer = (state, action) => {
