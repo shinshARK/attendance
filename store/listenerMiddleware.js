@@ -5,6 +5,7 @@ import { setStatus } from "./attendanceSlice"; // Import the setStatus action fr
 import { updateHistoryItem } from "./historySlice"; // Import updateHistoryItem action
 import { fetchCurrentDayAttendance } from "../utils/firebase/db/attendanceApi";
 import { syncNTPTime } from "../utils/backgroundAttendance";
+import { fetchUnitKerja, setUnitKerjaData } from "./unitKerjaSlice";
 
 export const listenerMiddleware = createListenerMiddleware();
 
@@ -25,6 +26,17 @@ listenerMiddleware.startListening({
         listenerApi.dispatch(setStatus(attendanceData)); // Dispatch setStatus with fetched data
         console.log(
           "attendanceSlice hydration dispatched using setStatus with fetched attendanceData."
+        );
+      }
+
+      // Fetch unit_kerja data
+      const unitKerjaData = await listenerApi.dispatch(fetchUnitKerja(email)); // Dispatch the async thunk and wait for it to resolve
+      console.log("Unit Kerja Data fetched in middleware:", unitKerjaData);
+
+      if (unitKerjaData.payload) {
+        listenerApi.dispatch(setUnitKerjaData(unitKerjaData.payload)); // Dispatch setUnitKerjaData with fetched data
+        console.log(
+          "unitKerjaSlice hydration dispatched using setUnitKerjaData with fetched unitKerjaData."
         );
       }
     } catch (error) {

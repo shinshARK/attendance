@@ -10,7 +10,8 @@ export const fetchHistoryFromFirebase = async () => {
     let userEmail = await AsyncStorage.getItem("email");
     userEmail = userEmail.replace("@", "(at)").replace(".", "(dot)");
     const token = await AsyncStorage.getItem("token");
-    const endpointURL = `${databaseURL}/attendanceData/${userEmail}.json?auth=${token}`;
+    // const endpointURL = `${databaseURL}/attendanceData/${userEmail}.json?auth=${token}`;
+    const endpointURL = `${databaseURL}/users/${userEmail}/attendanceData.json?auth=${token}`; // UPDATED PATH
 
     const historyResponse = await axios.get(endpointURL, {
       headers: { "Content-Type": "application/json" },

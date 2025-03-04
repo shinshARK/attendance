@@ -1,0 +1,85 @@
+{
+  "users": {
+    "presensi(at)mail(dot)com": {
+      "attendanceData": {
+        "2025-02-25": {
+          "checkInTime": "2025-02-25T02:58:20.781Z",
+          "checkOutTime": "2025-02-25T02:59:09.636Z",
+          "dinasDescription": "Test Dinas Luar Kota",
+          "isDinas": true,
+          "lastUpdated": "2025-02-25T02:59:09.636Z",
+          "status": 3
+        },
+        "2025-02-26": {
+          "checkInTime": "2025-02-26T06:06:10.709Z",
+          "checkOutTime": "2025-02-26T06:06:28.599Z",
+          "dinasDescription": "Dinas Rutin",
+          "isDinas": true,
+          "lastUpdated": "2025-02-26T06:06:28.599Z",
+          "status": 3
+        },
+        "2025-02-27": {
+          "checkInTime": "2025-02-27T08:00:00.000Z",
+          "checkOutTime": "2025-02-27T17:00:00.000Z",
+          "isDinas": false,
+          "lastUpdated": "2025-02-27T17:00:00.000Z",
+          "status": 1
+        }
+      },
+      "unit_kerja": {
+        "alamat": "Jl. Jenderal Sudirman Kav 28, RT.005/RW.002, Kuningan, Karet Semanggi, Kecamatan Setiabudi, Kota Jakarta Selatan, Daerah Khusus Ibukota Jakarta 12920",
+        "latitude": -6.2297,
+        "longitude": 106.8197,
+        "nama_unit_kerja": "PT. Maju Jaya Bersama"
+      }
+    },
+    "test(at)test(dot)com": {
+      "attendanceData": {
+        "2025-02-27": {
+          "checkInTime": "2025-02-27T05:09:52.763Z",
+          "checkOutTime": "2025-02-27T05:10:43.231Z",
+          "isDinas": false,
+          "lastUpdated": "2025-02-27T05:10:43.231Z",
+          "status": 3
+        }
+      },
+      "unit_kerja": {
+        "alamat": "Your Office Address Here",
+        "latitude": -6.872868773290025,
+        "longitude": 107.59036591779108,
+        "nama_unit_kerja": "Your Office Name"
+      }
+    },
+    "test1(at)test(dot)com": {
+      "attendanceData": {
+        "2025-02-25": {
+          "checkInTime": "2025-02-25T06:20:00.786Z",
+          "checkOutTime": "2025-02-25T11:02:00.786Z",
+          "isDinas": false,
+          "lastUpdated": "2025-02-25T06:20:00.786Z",
+          "status": 3
+        },
+        "2025-02-26": {
+          "checkInTime": "2025-02-26T09:20:42.344Z",
+          "checkOutTime": "2025-02-26T09:21:16.290Z",
+          "isDinas": false,
+          "lastUpdated": "2025-02-26T09:21:16.290Z",
+          "status": 3
+        },
+        "2025-02-27": {
+          "checkInTime": "2025-02-27T07:30:00.000Z",
+          "checkOutTime": "2025-02-27T16:30:00.000Z",
+          "isDinas": false,
+          "lastUpdated": "2025-02-27T16:30:00.000Z",
+          "status": 1
+        }
+      },
+      "unit_kerja": {
+        "alamat": "Jl. Asia Afrika No.8, RT.1/RW.3, Gelora, Kecamatan Tanah Abang, Kota Jakarta Pusat, Daerah Khusus Ibukota Jakarta 10270",
+        "latitude": -6.2189,
+        "longitude": 106.8098,
+        "nama_unit_kerja": "Gedung Kementerian Komunikasi dan Informatika"
+      }
+    }
+  }
+}
