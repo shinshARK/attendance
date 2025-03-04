@@ -5,13 +5,18 @@ import attendanceReducer from "./attendanceSlice";
 import authReducer from "./authSlice";
 import timeReducer from "./timeSlice";
 import historyReducer from "./historySlice";
+import unitKerjaReducer from "./unitKerjaSlice";
+import biometricReducer from "./biometricSlice";
 import { listenerMiddleware } from "./listenerMiddleware"; // Import the listener middleware
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const appReducer = combineReducers({
   attendance: attendanceReducer,
   auth: authReducer,
   time: timeReducer,
   history: historyReducer,
+  unitKerja: unitKerjaReducer,
+  biometric: biometricReducer,
 });
 
 export const rootReducer = (state, action) => {

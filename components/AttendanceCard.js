@@ -5,6 +5,8 @@ import Button from "./ui/Button";
 import { AttendanceStatus, statusColors } from "../constants/attendance";
 import * as BackgroundFetch from "expo-background-fetch";
 import * as TaskManager from "expo-task-manager";
+import * as LocalAuthentication from "expo-local-authentication";
+
 import {
   performAttendanceCheck,
   syncNTPTime,
@@ -20,21 +22,34 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { store } from "../store";
 import * as Location from "expo-location";
 import { haversine } from "../utils/location";
+import { checkBiometricAvailability } from "../utils/biometricAuth";
 
 // uhh Ilkom Gedung C
-// const OFFICE_LATITUDE = -6.872868773290025; // Replace with your office latitude
-// const OFFICE_LONGITUDE = 107.59036591779108; // Replace with your office longitude
+// const OFFICE_LATITUDE = -6.872868773290025;
+// const OFFICE_LONGITUDE = 107.59036591779108;
 
-// ARM
-const OFFICE_LATITUDE = -6.872868773290025; // Replace with your office latitude
-const OFFICE_LONGITUDE = 107.59036591779108; // Replace with your office longitude
+// // ARM
+// const OFFICE_LATITUDE = -6.872868773290025;
+// const OFFICE_LONGITUDE = 107.59036591779108;
 
 const OFFICE_RADIUS_METERS = 50; // 50 meters radius
 
 const AttendanceCard = ({ name }) => {
   const dispatch = useDispatch();
+
   const { status: attendanceStatus, lastUpdated } = useSelector(
     (state) => state.attendance
+  );
+
+  const {
+    alamat: OFFICE_ADDRESS,
+    latitude: OFFICE_LATITUDE,
+    longitude: OFFICE_LONGITUDE,
+    nama_unit_kerja: OFFICE_NAME,
+  } = useSelector((state) => state.unitKerja);
+
+  const isBiometricAvailable = useSelector(
+    (state) => state.biometric.isBiometricAvailable
   );
 
   const [isCheckedDinas, setIsCheckedDinas] = useState(false);
@@ -57,6 +72,7 @@ const AttendanceCard = ({ name }) => {
     async function effectFunction() {
       await registerBackgroundFetchAsync();
       await syncNTPTime();
+      await checkBiometricAvailability(); // Call at app startup
     }
     effectFunction();
   }, [syncNTPTime]);
@@ -77,6 +93,9 @@ const AttendanceCard = ({ name }) => {
       let location = await Location.getCurrentPositionAsync({});
       console.log(
         `current location coords: ${JSON.stringify(location.coords)}`
+      );
+      console.log(
+        `office info: ${OFFICE_ADDRESS} ${OFFICE_LATITUDE} ${OFFICE_LONGITUDE} ${OFFICE_NAME}`
       );
       const distance = haversine(
         location.coords.latitude,
@@ -99,14 +118,25 @@ const AttendanceCard = ({ name }) => {
 
   const handleButtonPress = async () => {
     setButtonLoading(true);
+    console.log(`is biometric available?: ${isBiometricAvailable}`);
     const isInOfficeRange = await isLocationInOfficeRange();
     if (!isInOfficeRange) {
       Alert.alert(
         "You are not in the office range",
-        `Please check in/out when you are within ${OFFICE_RADIUS_METERS} meters of the office.`
+        `Please check in/out when you are within ${OFFICE_RADIUS_METERS} meters of the office (${OFFICE_ADDRESS}).`
       );
       setButtonLoading(false);
       return;
+    }
+
+    if (isBiometricAvailable) {
+      const biometricAuthResult = await LocalAuthentication.authenticateAsync();
+      console.log(JSON.stringify(biometricAuthResult));
+      if (biometricAuthResult.error) {
+        console.log(error);
+        setButtonLoading(false);
+        return;
+      }
     }
 
     let newStatus;

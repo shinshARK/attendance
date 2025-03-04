@@ -4,7 +4,7 @@ import { firebaseConfig } from "../../../constants/firebase";
 import { store } from "../../../store";
 import { syncNTPTime } from "../../backgroundAttendance";
 
-const databaseURL = firebaseConfig.databaseURL; // Extract databaseURL for REST API calls
+// const databaseURL = firebaseConfig.databaseURL; // Extract databaseURL for REST API calls
 
 // export const logAttendanceData = async (userId, date, attendanceData) => {
 export const updateCurrentDayAttendanceStatus = async (
@@ -22,7 +22,8 @@ export const updateCurrentDayAttendanceStatus = async (
 
     const token = await AsyncStorage.getItem("token");
 
-    const endpointURL = `${databaseURL}/attendanceData/${userEmail}/${date}.json?auth=${token}`; // REST API endpoint
+    // const endpointURL = `${databaseURL}/attendanceData/${userEmail}/${date}.json?auth=${token}`; // REST API endpoint
+    const endpointURL = `${firebaseConfig.databaseURL}/users/${userEmail}/attendanceData/${date}.json?auth=${token}`;
     // console.log(endpointURL);
 
     const response = await axios.put(endpointURL, attendanceData, {
@@ -62,7 +63,8 @@ export const fetchCurrentDayAttendance = async (email, token) => {
     await syncNTPTime();
     const syncedTime = store.getState().time.ntpTime; // Get NTP time from Redux
     const today = new Date(syncedTime).toISOString().split("T")[0]; // NTP date
-    const endpointURL = `${firebaseConfig.databaseURL}/attendanceData/${formattedEmail}/${today}.json?auth=${token}`;
+    // const endpointURL = `${firebaseConfig.databaseURL}/attendanceData/${formattedEmail}/${today}.json?auth=${token}`;
+    const endpointURL = `${firebaseConfig.databaseURL}/users/${formattedEmail}/attendanceData/${today}.json?auth=${token}`;
 
     const attendanceResponse = await axios.get(endpointURL, {
       headers: { "Content-Type": "application/json" },

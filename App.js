@@ -21,6 +21,7 @@ import AppLoading from "expo-app-loading";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCallback, useEffect, useState } from "react";
 import { logout as logoutAction, fetchStoredToken } from "./store/authSlice";
+import { checkBiometricAvailability } from "./utils/biometricAuth";
 
 const BottomTabs = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -113,34 +114,14 @@ function AuthenticatedStack() {
         name="AttendanceTabs" // Directly render AttendanceBottomTabs
         component={AttendanceBottomTabs}
       />
-      {/* Remove WelcomeScreen screen definition */}
-      {/* <Stack.Screen
-        name="Welcome"
-        component={WelcomeScreen}
-        options={{
-          headerRight: ({ tintColor }) => (
-            <IconButton
-              icon="exit"
-              color={tintColor}
-              size={24}
-              onPress={logoutHandler}
-            />
-          ),
-        }}
-      />
-      <Stack.Screen
-        name="AttendanceTabs"
-        component={AttendanceBottomTabs}
-        options={{
-          headerShown: false,
-        }}
-      /> */}
     </Stack.Navigator>
   );
 }
 
 function Navigation() {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+
+  console.log(`is authenticated? ${isAuthenticated}`);
 
   return (
     <NavigationContainer>
