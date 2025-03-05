@@ -1,9 +1,11 @@
 // File: /screens/History.js
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { View, Text, Button, ActivityIndicator, FlatList } from "react-native";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchAttendanceHistory } from "../store/historySlice";
 import HistoryCard from "../components/HistoryCard";
+
+import LottieView from "lottie-react-native";
 
 function History() {
   const dispatch = useDispatch();
@@ -52,9 +54,17 @@ function History() {
           keyExtractor={keyExtractor}
         />
       ) : historyState.loading !== "loading" && !historyState.error ? (
-        <Text style={{ marginTop: 20, textAlign: "center" }}>
-          No history data available.
-        </Text>
+        <>
+          <Text style={{ marginTop: 20, textAlign: "center" }}>
+            No history data available.
+          </Text>
+          <LottieView
+            source={require("../assets/animations/empty_history.json")}
+            style={{ width: "100%", height: "70%" }}
+            autoPlay
+            loop={false}
+          />
+        </>
       ) : null}
     </View>
   );

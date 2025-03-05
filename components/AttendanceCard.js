@@ -1,3 +1,13 @@
+/*
+  TODO: 
+  [ ] redesign checking in and checking out (resize animation?)
+  [ ] ganti animasi lokasi berdasarkan lokasi juga (baru dinas)
+  [ ] cek berkala lokasi
+  [ ] redesign modal
+  [ ] alert jangan default
+  
+*/
+
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, Modal, TextInput, Alert } from "react-native";
 import Card from "./ui/Card";
@@ -20,15 +30,15 @@ import { updateCurrentDayAttendanceStatus } from "../utils/firebase/db/attendanc
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { store } from "../store";
-import * as Location from "expo-location";
-import { haversine } from "../utils/location";
 import { checkBiometricAvailability } from "../utils/biometricAuth";
+import useOfficeLocationCheck from "../utils/hooks/useOfficeLocationCheck";
+import LottieView from "lottie-react-native";
 
 // uhh Ilkom Gedung C
 // const OFFICE_LATITUDE = -6.872868773290025;
 // const OFFICE_LONGITUDE = 107.59036591779108;
 
-// // ARM
+// ARM
 // const OFFICE_LATITUDE = -6.872868773290025;
 // const OFFICE_LONGITUDE = 107.59036591779108;
 
@@ -57,6 +67,9 @@ const AttendanceCard = ({ name }) => {
   const [keteranganDinas, setKeteranganDinas] = useState("");
   const [buttonLoading, setButtonLoading] = useState(false);
 
+  const { isLocationInOfficeRange, isLocationLoading } =
+    useOfficeLocationCheck(); // Use the hook
+
   useEffect(() => {
     async function registerBackgroundFetchAsync() {
       try {
@@ -77,64 +90,33 @@ const AttendanceCard = ({ name }) => {
     effectFunction();
   }, [syncNTPTime]);
 
-  const isLocationInOfficeRange = async () => {
-    try {
-      let { status: permissionStatus } =
-        await Location.requestForegroundPermissionsAsync(); // Renamed status to permissionStatus
-      if (permissionStatus !== "granted") {
-        // Use permissionStatus here
-        Alert.alert(
-          "Location permission not granted",
-          "Please grant location permission to check attendance."
-        );
-        return false;
-      }
-
-      let location = await Location.getCurrentPositionAsync({});
-      console.log(
-        `current location coords: ${JSON.stringify(location.coords)}`
-      );
-      console.log(
-        `office info: ${OFFICE_ADDRESS} ${OFFICE_LATITUDE} ${OFFICE_LONGITUDE} ${OFFICE_NAME}`
-      );
-      const distance = haversine(
-        location.coords.latitude,
-        location.coords.longitude,
-        OFFICE_LATITUDE,
-        OFFICE_LONGITUDE
-      );
-
-      console.log(`Distance to office: ${distance} meters`);
-      return distance <= OFFICE_RADIUS_METERS;
-    } catch (error) {
-      console.error("Error checking location:", error);
-      Alert.alert(
-        "Location Error",
-        "Could not get location. Please try again."
-      );
-      return false; // Assume not in range if location can't be determined
-    }
-  };
-
   const handleButtonPress = async () => {
     setButtonLoading(true);
     console.log(`is biometric available?: ${isBiometricAvailable}`);
-    const isInOfficeRange = await isLocationInOfficeRange();
-    if (!isInOfficeRange) {
-      Alert.alert(
-        "You are not in the office range",
-        `Please check in/out when you are within ${OFFICE_RADIUS_METERS} meters of the office (${OFFICE_ADDRESS}).`
-      );
-      setButtonLoading(false);
-      return;
+
+    if (!isCheckedDinas) {
+      const isInOfficeRange = await isLocationInOfficeRange();
+      if (!isInOfficeRange) {
+        setButtonLoading(false);
+        Alert.alert(
+          "You are not in the office range",
+          `Please check in/out when you are within ${OFFICE_RADIUS_METERS} meters of the office (${OFFICE_ADDRESS}).`
+        );
+        return;
+      }
     }
 
     if (isBiometricAvailable) {
-      const biometricAuthResult = await LocalAuthentication.authenticateAsync();
-      console.log(JSON.stringify(biometricAuthResult));
-      if (biometricAuthResult.error) {
-        console.log(error);
-        setButtonLoading(false);
+      try {
+        const biometricAuthResult =
+          await LocalAuthentication.authenticateAsync();
+        if (!biometricAuthResult.success) {
+          setButtonLoading(false); // Stop loading on biometric auth failure
+          return; // Early return if biometric auth fails
+        }
+      } catch (error) {
+        console.error("Biometric authentication error:", error);
+        setButtonLoading(false); // Stop loading on biometric auth error
         return;
       }
     }
@@ -149,6 +131,7 @@ const AttendanceCard = ({ name }) => {
       return;
     }
 
+    let checkIn;
     if (
       newStatus === AttendanceStatus.CHECKED_IN ||
       newStatus === AttendanceStatus.CHECKED_OUT
@@ -159,7 +142,6 @@ const AttendanceCard = ({ name }) => {
         const syncedTime = store.getState().time.ntpTime;
         const today = new Date(syncedTime).toISOString().split("T")[0];
 
-        let checkIn;
         if (AttendanceStatus.CHECKING_IN) {
         } else {
           checkIn = store.getState().attendance.checkInTime;
@@ -266,6 +248,9 @@ const AttendanceCard = ({ name }) => {
 
   const isCheckboxEnabled = attendanceStatus === AttendanceStatus.CHECKING_IN;
   const showCheckbox = attendanceStatus !== AttendanceStatus.CHECKED_OUT;
+  const showLocationIndicator = attendanceStatus <= 1;
+
+  console.log(`is checked dinas: ${isCheckedDinas}`);
 
   return (
     <Card
@@ -275,6 +260,7 @@ const AttendanceCard = ({ name }) => {
       <View>
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <Text style={styles.name}>{name}</Text>
+
           <IconButton
             icon={"refresh-circle-outline"}
             size={30}
@@ -295,7 +281,37 @@ const AttendanceCard = ({ name }) => {
           flexBasis: "100%",
         }}
       >
-        {showCheckbox && (
+        <View
+          style={{
+            flexDirection: "row",
+          }}
+        >
+          {showLocationIndicator && (
+            <LottieView
+              source={
+                isCheckedDinas
+                  ? require("../assets/animations/location_received.json")
+                  : require("../assets/animations/location_loading.json")
+              }
+              style={{
+                width: 70,
+                height: 50,
+                marginLeft: -20,
+                marginRight: -5,
+              }}
+              autoPlay
+              loop={!isCheckedDinas}
+              onAnimationFinish={() => {
+                console.log(
+                  "LottieView source:",
+                  isCheckedDinas
+                    ? "../assets/animations/location_received.json"
+                    : "../assets/animations/location_loading.json"
+                ); // ADD THIS LOG
+              }}
+            ></LottieView>
+          )}
+
           <View
             style={{
               flexDirection: "row",
@@ -303,23 +319,28 @@ const AttendanceCard = ({ name }) => {
               marginRight: 10,
             }}
           >
-            <CheckBox
-              value={isCheckedDinas}
-              onValueChange={handleCheckboxDinasPress}
-              color={"white"}
-              disabled={!isCheckboxEnabled}
-            />
-            <Text
-              style={{
-                color: "white",
-                marginLeft: 5,
-                opacity: isCheckboxEnabled ? 1 : 0.5,
-              }}
-            >
-              Sedang Dinas
-            </Text>
+            {showCheckbox && (
+              <>
+                <CheckBox
+                  value={isCheckedDinas}
+                  onValueChange={handleCheckboxDinasPress}
+                  color={"white"}
+                  disabled={!isCheckboxEnabled}
+                />
+                <Text
+                  style={{
+                    color: "white",
+                    marginLeft: 5,
+                    opacity: isCheckboxEnabled ? 1 : 0.5,
+                  }}
+                >
+                  Sedang Dinas
+                </Text>
+              </>
+            )}
           </View>
-        )}
+        </View>
+
         <View style={{ flex: 0, alignSelf: "flex-end" }}>
           <Button
             title={buttonText}
@@ -365,6 +386,7 @@ const styles = StyleSheet.create({
     margin: 20,
     padding: 20,
     backgroundColor: "white",
+    // height: 200,
   },
   name: {
     fontSize: 18,

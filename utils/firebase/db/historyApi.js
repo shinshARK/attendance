@@ -12,10 +12,12 @@ export const fetchHistoryFromFirebase = async () => {
     const token = await AsyncStorage.getItem("token");
     // const endpointURL = `${databaseURL}/attendanceData/${userEmail}.json?auth=${token}`;
     const endpointURL = `${databaseURL}/users/${userEmail}/attendanceData.json?auth=${token}`; // UPDATED PATH
+    // console.log(endpointURL);
 
     const historyResponse = await axios.get(endpointURL, {
       headers: { "Content-Type": "application/json" },
     });
+    // console.log(JSON.stringify(historyResponse));
 
     const firebaseHistoryData = historyResponse.data; // Raw data from Firebase
     console.log("Raw history data from Firebase:", firebaseHistoryData); // Log raw data
