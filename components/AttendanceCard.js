@@ -3,8 +3,9 @@
   [ ] redesign checking in and checking out (resize animation?)
   [ ] ganti animasi lokasi berdasarkan lokasi juga (baru dinas)
   [ ] cek berkala lokasi
-  [ ] redesign modal
   [ ] alert jangan default
+  [x] Modal dipisah ke DinasModal
+  [ ] redesign modal
   
 */
 
@@ -34,6 +35,7 @@ import { checkBiometricAvailability } from "../utils/biometricAuth";
 import useOfficeLocationCheck from "../utils/hooks/useOfficeLocationCheck";
 import LottieView from "lottie-react-native";
 
+import DinasModal from "./DinasModal";
 // uhh Ilkom Gedung C
 // const OFFICE_LATITUDE = -6.872868773290025;
 // const OFFICE_LONGITUDE = 107.59036591779108;
@@ -350,7 +352,22 @@ const AttendanceCard = ({ name }) => {
           />
         </View>
       </View>
-      <Modal visible={isModalVisible} animationType="slide">
+
+      <DinasModal
+        isVisible={isModalVisible}
+        onDismiss={() => setIsModalVisible(false)}
+        onSave={handleSimpanKeterangan}
+      />
+
+      {/* <DinasModal
+        isVisible={isModalVisible}
+        keterangan={keteranganDinas} // Pass the state
+        onKeteranganChange={(text) => setKeteranganDinas(text)} // Pass the setter
+        onSimpan={handleSimpanKeterangan}
+        onBatal={handleBatalKeterangan}
+      /> */}
+
+      {/* <Modal visible={isModalVisible} animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Keterangan Dinas:</Text>
@@ -376,7 +393,7 @@ const AttendanceCard = ({ name }) => {
             </View>
           </View>
         </View>
-      </Modal>
+      </Modal> */}
     </Card>
   );
 };
@@ -397,38 +414,6 @@ const styles = StyleSheet.create({
   info: {
     fontSize: 14,
     color: "white",
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-  },
-  modalContent: {
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 10,
-    width: "80%",
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 15,
-  },
-  modalTextInput: {
-    borderColor: "gray",
-    borderWidth: 1,
-    marginBottom: 15,
-    padding: 10,
-    borderRadius: 5,
-    textAlignVertical: "top",
-  },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-  },
-  modalButton: {
-    minWidth: "40%",
   },
 });
 
