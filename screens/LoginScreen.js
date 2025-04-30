@@ -1,33 +1,47 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import AuthContent from "../components/Auth/AuthContent";
 import LoadingOverlay from "../components/ui/LoadingOverlay";
-import { Alert } from "react-native";
-
-// Removed context import
-// import { AuthContext } from "../store/auth-context";
+import CustomAlert from "../components/ui/CustomAlert";
 
 // Redux imports
 import { useDispatch, useSelector } from "react-redux";
 import { login as loginAction } from "../store/authSlice";
 
 function LoginScreen() {
-  // const authCtx = useContext(AuthContext); // No longer using context
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const dispatch = useDispatch(); // Get dispatch function
+  const [alertConfig, setAlertConfig] = useState({
+    visible: false,
+    title: "",
+    message: "",
+    buttons: [
+      {
+        text: "OK",
+        onPress: () => setAlertConfig((prev) => ({ ...prev, visible: false })),
+      },
+    ],
+  });
 
-  const error = useSelector((state) => state.auth.error); // Get error from state
+  const dispatch = useDispatch();
+  const error = useSelector((state) => state.auth.error);
 
   async function loginHandler({ email, password }) {
     setIsAuthenticating(true);
     try {
-      // const token = await login(email, password); // No longer calling util/auth directly
-      // authCtx.authenticate(token);
-      await dispatch(loginAction({ email, password })).unwrap(); // Dispatch login action
-    } catch (error) {
-      Alert.alert(
-        "Authentication failed!",
-        "Could not log you in. Please check your credentials or try again later!"
-      );
+      await dispatch(loginAction({ email, password })).unwrap();
+    } catch (err) {
+      setAlertConfig({
+        visible: true,
+        title: "Authentication failed!",
+        message:
+          "Could not log you in. Please check your credentials or try again later!",
+        buttons: [
+          {
+            text: "OK",
+            onPress: () =>
+              setAlertConfig((prev) => ({ ...prev, visible: false })),
+          },
+        ],
+      });
       setIsAuthenticating(false);
     }
   }
@@ -36,7 +50,18 @@ function LoginScreen() {
     return <LoadingOverlay message={"Logging in..."} />;
   }
 
-  return <AuthContent isLogin onAuthenticate={loginHandler} />;
+  return (
+    <>
+      <AuthContent isLogin onAuthenticate={loginHandler} />
+      <CustomAlert
+        visible={alertConfig.visible}
+        onClose={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+      />
+    </>
+  );
 }
 
 export default LoginScreen;

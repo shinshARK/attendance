@@ -32,7 +32,8 @@
     "redux-persist": "^6.0.0",
     "expo-location": "~18.0.7",
     "expo-local-authentication": "~15.0.2",
-    "lottie-react-native": "7.1.0"
+    "lottie-react-native": "7.1.0",
+    "expo-navigation-bar": "~4.0.9"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

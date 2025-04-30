@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Alert, StyleSheet, View } from "react-native";
+import React, { useState } from "react";
+import { StyleSheet, View } from "react-native";
+import CustomAlert from "../ui/CustomAlert";
 
 import FlatButton from "../ui/FlatButton";
 import AuthForm from "./AuthForm";
@@ -14,9 +15,19 @@ function AuthContent({ isLogin, onAuthenticate }) {
     confirmEmail: false,
     confirmPassword: false,
   });
+  const [alertConfig, setAlertConfig] = useState({
+    visible: false,
+    title: "",
+    message: "",
+    buttons: [
+      {
+        text: "OK",
+        onPress: () => setAlertConfig((prev) => ({ ...prev, visible: false })),
+      },
+    ],
+  });
 
   function switchAuthModeHandler() {
-    // Todo
     if (isLogin) {
       navigation.replace("Signup");
     } else {
@@ -40,7 +51,18 @@ function AuthContent({ isLogin, onAuthenticate }) {
       !passwordIsValid ||
       (!isLogin && (!emailsAreEqual || !passwordsAreEqual))
     ) {
-      Alert.alert("Invalid input", "Please check your entered credentials.");
+      setAlertConfig({
+        visible: true,
+        title: "Invalid input",
+        message: "Please check your entered credentials.",
+        buttons: [
+          {
+            text: "OK",
+            onPress: () =>
+              setAlertConfig((prev) => ({ ...prev, visible: false })),
+          },
+        ],
+      });
       setCredentialsInvalid({
         email: !emailIsValid,
         confirmEmail: !emailIsValid || !emailsAreEqual,
@@ -53,18 +75,27 @@ function AuthContent({ isLogin, onAuthenticate }) {
   }
 
   return (
-    <View style={styles.authContent}>
-      <AuthForm
-        isLogin={isLogin}
-        onSubmit={submitHandler}
-        credentialsInvalid={credentialsInvalid}
-      />
-      <View style={styles.buttons}>
-        <FlatButton onPress={switchAuthModeHandler}>
-          {isLogin ? "Create a new user" : "Log in instead"}
-        </FlatButton>
+    <>
+      <View style={styles.authContent}>
+        <AuthForm
+          isLogin={isLogin}
+          onSubmit={submitHandler}
+          credentialsInvalid={credentialsInvalid}
+        />
+        <View style={styles.buttons}>
+          <FlatButton onPress={switchAuthModeHandler}>
+            {isLogin ? "Create a new user" : "Log in instead"}
+          </FlatButton>
+        </View>
       </View>
-    </View>
+      <CustomAlert
+        visible={alertConfig.visible}
+        onClose={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+      />
+    </>
   );
 }
 

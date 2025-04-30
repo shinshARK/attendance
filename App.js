@@ -2,6 +2,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { StatusBar } from "expo-status-bar";
+import * as NavigationBar from "expo-navigation-bar";
 import { StyleSheet, Text, View } from "react-native";
 import Presensi from "./screens/Presensi";
 import History from "./screens/History";
@@ -149,6 +150,12 @@ function Root() {
 }
 
 export default function App() {
+  useEffect(() => {
+    // make the nav bar transparent
+    // NavigationBar.setBackgroundColorAsync("transparent");
+    // choose light icons so they show on dark overlay
+    // NavigationBar.setButtonStyleAsync("light");
+  }, []);
   return (
     <>
       <StatusBar style="light" />

@@ -1,15 +1,15 @@
 /*
   TODO: 
-  [ ] redesign checking in and checking out (resize animation?)
-  [ ] ganti animasi lokasi berdasarkan lokasi juga (baru dinas)
-  [ ] cek berkala lokasi
-  [ ] alert jangan default
+  [x] toggle off animasi di state checking in and checking out
+  [x] ganti animasi lokasi berdasarkan lokasi juga (baru dinas)
+  [x] cek berkala lokasi
+  [x] alert jangan default
   [x] Modal dipisah ke DinasModal
-  [ ] redesign modal
+  [x] redesign modal
   
 */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { View, Text, StyleSheet, Modal, TextInput, Alert } from "react-native";
 import Card from "./ui/Card";
 import Button from "./ui/Button";
@@ -36,6 +36,7 @@ import useOfficeLocationCheck from "../utils/hooks/useOfficeLocationCheck";
 import LottieView from "lottie-react-native";
 
 import DinasModal from "./DinasModal";
+import CustomAlert from "./ui/CustomAlert";
 // uhh Ilkom Gedung C
 // const OFFICE_LATITUDE = -6.872868773290025;
 // const OFFICE_LONGITUDE = 107.59036591779108;
@@ -45,6 +46,8 @@ import DinasModal from "./DinasModal";
 // const OFFICE_LONGITUDE = 107.59036591779108;
 
 const OFFICE_RADIUS_METERS = 50; // 50 meters radius
+
+const LOCATION_CHECK_INTERVAL_MS = 30 * 1000; // 30 seconds
 
 const AttendanceCard = ({ name }) => {
   const dispatch = useDispatch();
@@ -69,8 +72,41 @@ const AttendanceCard = ({ name }) => {
   const [keteranganDinas, setKeteranganDinas] = useState("");
   const [buttonLoading, setButtonLoading] = useState(false);
 
+  const [alertConfig, setAlertConfig] = useState({
+    visible: false,
+    title: "",
+    message: "",
+    buttons: [
+      {
+        text: "OK",
+        onPress: () => setAlertConfig((prev) => ({ ...prev, visible: false })),
+      },
+    ],
+  });
+
+  const [isInRange, setIsInRange] = useState(null);
+
   const { isLocationInOfficeRange, isLocationLoading } =
     useOfficeLocationCheck(); // Use the hook
+
+  const intervalRef = useRef(null);
+  useEffect(() => {
+    // initial check
+    (async () => {
+      const inRange = await isLocationInOfficeRange();
+      setIsInRange(inRange);
+    })();
+
+    // set up interval
+    intervalRef.current = setInterval(async () => {
+      console.log("Periodic location check running...");
+      const inRange = await isLocationInOfficeRange();
+      console.log(`In range? ${inRange}`);
+      setIsInRange(inRange);
+    }, LOCATION_CHECK_INTERVAL_MS);
+
+    return () => clearInterval(intervalRef.current);
+  }, []);
 
   useEffect(() => {
     async function registerBackgroundFetchAsync() {
@@ -96,16 +132,31 @@ const AttendanceCard = ({ name }) => {
     setButtonLoading(true);
     console.log(`is biometric available?: ${isBiometricAvailable}`);
 
-    if (!isCheckedDinas) {
-      const isInOfficeRange = await isLocationInOfficeRange();
-      if (!isInOfficeRange) {
-        setButtonLoading(false);
-        Alert.alert(
-          "You are not in the office range",
-          `Please check in/out when you are within ${OFFICE_RADIUS_METERS} meters of the office (${OFFICE_ADDRESS}).`
-        );
-        return;
-      }
+    if (!isCheckedDinas && !isInRange) {
+      console.log("doing a recheck...");
+      const recheck = await isLocationInOfficeRange();
+      setIsInRange(recheck);
+    }
+
+    if (!isCheckedDinas && !isInRange) {
+      // Alert.alert(
+      //   "You are not in the office range",
+      //   `Please check in/out when you are within ${OFFICE_RADIUS_METERS} meters of the office (${OFFICE_ADDRESS}).`
+      // );
+      setAlertConfig({
+        visible: true,
+        title: "You are not in the office range",
+        message: `Please check in/out when you are within ${OFFICE_RADIUS_METERS} meters of the office (${OFFICE_ADDRESS}).`,
+        buttons: [
+          {
+            text: "OK",
+            onPress: () =>
+              setAlertConfig((prev) => ({ ...prev, visible: false })),
+          },
+        ],
+      });
+      setButtonLoading(false);
+      return;
     }
 
     if (isBiometricAvailable) {
@@ -252,7 +303,12 @@ const AttendanceCard = ({ name }) => {
   const showCheckbox = attendanceStatus !== AttendanceStatus.CHECKED_OUT;
   const showLocationIndicator = attendanceStatus <= 1;
 
-  console.log(`is checked dinas: ${isCheckedDinas}`);
+  let animationLoop = true;
+  let animationSource = require("../assets/animations/location_loading.json");
+  if (isCheckedDinas || isInRange) {
+    animationLoop = false;
+    animationSource = require("../assets/animations/location_received.json");
+  }
 
   return (
     <Card
@@ -290,11 +346,7 @@ const AttendanceCard = ({ name }) => {
         >
           {showLocationIndicator && (
             <LottieView
-              source={
-                isCheckedDinas
-                  ? require("../assets/animations/location_received.json")
-                  : require("../assets/animations/location_loading.json")
-              }
+              source={animationSource}
               style={{
                 width: 70,
                 height: 50,
@@ -302,7 +354,7 @@ const AttendanceCard = ({ name }) => {
                 marginRight: -5,
               }}
               autoPlay
-              loop={!isCheckedDinas}
+              loop={animationLoop}
               onAnimationFinish={() => {
                 console.log(
                   "LottieView source:",
@@ -352,6 +404,14 @@ const AttendanceCard = ({ name }) => {
           />
         </View>
       </View>
+
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
+      />
 
       <DinasModal
         isVisible={isModalVisible}
